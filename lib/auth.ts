@@ -1,6 +1,6 @@
 // PIN gate. Set DASHBOARD_PIN, ADMIN_PIN and AUTH_SECRET in Vercel env vars. Defaults are for local use only.
-export const PIN = () => process.env.DASHBOARD_PIN || "4821";
-export const ADMIN_PIN = () => process.env.ADMIN_PIN || "7391";
+export const PIN = () => process.env.DASHBOARD_PIN || "3725";
+export const ADMIN_PIN = () => process.env.ADMIN_PIN || "3725";
 const SECRET = () => process.env.AUTH_SECRET || "northco-local-secret";
 
 export async function sign(value: string) {

@@ -16,7 +16,7 @@ export interface AgentDef {
 
 export const AGENTS: AgentDef[] = [
   { id: "dispatch", name: "Dispatch", role: "Routes your question", color: "#f4f4f5", blurb: "Ask anything. Dispatch hands it to the right agent.", prompts: ["How did we do this week?"], keys: /^$/ },
-  { id: "receptionist", name: "Receptionist", role: "Answers every call", color: "#7aa7ff", blurb: "Knows every call: what was said, how it was handled, what went wrong.", prompts: ["Why couldn't it hear some callers?", "How many calls came in after hours?", "What issues did you catch?"], keys: /call|phone|ring|answer|hear|audio|noise|transfer|spam|hang|after.?hours|night|weekend|voicemail|transcript|greeting|handled/i },
+  { id: "receptionist", name: "Receptionist", role: "Answers every call", color: "#7aa7ff", blurb: "Knows every call: what was said, how it was handled, what went wrong.", prompts: ["Why couldn't it hear some callers?", "How many calls came in after hours?", "What issues did you catch?"], keys: /busiest|peak|latest|call|phone|ring|answer|hear|audio|noise|transfer|spam|hang|after.?hours|night|weekend|voicemail|transcript|greeting|handled/i },
   { id: "leads", name: "Lead Response", role: "Replies in minutes", color: "#4ade9a", blurb: "Tracks every new lead and how fast we responded.", prompts: ["How fast do we reply to new leads?", "Where are leads coming from?", "Who is still waiting on a reply?"], keys: /lead|inquir|form|source|speed|fast|quick|respond|reply time|waiting|new customer/i },
   { id: "followup", name: "Follow-up", role: "Keeps leads warm", color: "#f2b84b", blurb: "Runs the email follow-up and watches opens and replies.", prompts: ["How are the follow-up emails doing?", "Who replied this month?"], keys: /follow.?up|email|open|replied|sequence|touch|nurture|drip/i },
   { id: "jobs", name: "Jobs", role: "Tracks booked work", color: "#ff9a6b", blurb: "Booked jobs, what's scheduled and what's in the pipeline.", prompts: ["What jobs are scheduled?", "What's my pipeline worth?"], keys: /job|booked|schedul|pipeline|revenue|value|worth|work order|completed|crew/i },
@@ -59,6 +59,25 @@ export function answer(ds: Dataset, agent: AgentId, q: string, settings?: Pick<S
     }
     if (has(q, /after.?hours|night|weekend/i))
       return { agent, text: `${s.afterHours} of ${s.answered} calls (${s.afterHoursPct}%) in the last 30 days came in outside 8am to 6pm weekdays. All were answered, and ${s.calls.filter((c) => c.afterHours && (c.outcome === "job_booked" || c.outcome === "quote_requested")).length} of them turned into a job or estimate request.` };
+    if (has(q, /today|yesterday/i)) {
+      const d = has(q, /yesterday/i) ? 1 : 0, start = new Date(ds.now); start.setHours(0, 0, 0, 0);
+      const from = start.getTime() - d * 86400000, to = from + 86400000;
+      const cs = ds.calls.filter((c) => c.at >= from && c.at < to);
+      return { agent, text: cs.length ? `${cs.length} calls ${d ? "yesterday" : "today"}: ${cs.slice(0, 4).map((c) => `${c.name} (${c.summary.replace(/\.$/, "")})`).join("; ")}.` : `No calls ${d ? "yesterday" : "yet today"}.` };
+    }
+    if (has(q, /busiest|peak|most calls|best day|when do/i)) {
+      let best = { h: 0, n: 0 }; const hrs = Array(24).fill(0);
+      s.calls.forEach((c) => { const h = new Date(new Date(c.at).toLocaleString("en-US", { timeZone: "America/Los_Angeles" })).getHours(); hrs[h]++; });
+      hrs.forEach((n, h) => { if (n > best.n) best = { h, n }; });
+      const lbl = (h: number) => `${((h + 11) % 12) + 1}${h < 12 ? "am" : "pm"}`;
+      return { agent, text: `Your busiest hour is ${lbl(best.h)} to ${lbl((best.h + 1) % 24)} with ${best.n} calls in the last 30 days. ${s.afterHoursPct}% of all calls came after hours.` };
+    }
+    if (has(q, /latest|last call|recent|who called/i)) {
+      const c = ds.calls[0];
+      return { agent, text: `The latest call was ${c.name} on ${new Date(c.at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/Los_Angeles" })}: ${c.summary}` };
+    }
+    if (has(q, /how.*handle|what happens|process|script|greeting/i))
+      return { agent, text: `Every call follows six steps: answered on the first ring, greeted with "what's going on?", urgency checked, details captured (name, phone, address, service), classified, then the owner is alerted by email or transferred live if the caller is frustrated. ${s.answered} calls went through it in the last 30 days.` };
     if (has(q, /transfer/i)) return { agent, text: `${s.transfers} calls were transferred live to ${name}'s owner in the last 30 days. The receptionist only transfers when a caller is clearly frustrated or asks for a person.` };
     if (has(q, /spam/i)) return { agent, text: `${s.spam} spam calls were filtered out in the last 30 days. They don't trigger alerts.` };
     return { agent, text: `Last 30 days: ${s.answered} calls answered (${delta(s.answered, s.prevAnswered) >= 0 ? "+" : ""}${delta(s.answered, s.prevAnswered)}% vs the 30 days before), ${s.afterHoursPct}% after hours, average real call ${mins(s.avgDuration)}, ${s.transfers} transferred to you.`, facts: outcomes(ds, 30).filter((o) => o.n).map((o) => `${o.label}: ${o.n}`) };
@@ -70,6 +89,11 @@ export function answer(ds: Dataset, agent: AgentId, q: string, settings?: Pick<S
       const open = ds.leads.filter((l) => l.status === "new").slice(0, 5);
       return { agent, text: open.length ? `${open.length} lead${open.length > 1 ? "s are" : " is"} new and being worked: ${open.map((l) => `${l.name} (${l.service.toLowerCase()})`).join(", ")}. Each already got the instant reply email.` : "No leads are waiting. Everyone has had a first reply." };
     }
+    if (has(q, /fast|speed|quick|how soon|reply time|respond/i)) {
+      const sp = s.leads.filter((l) => l.firstReplyMin <= 5).length;
+      return { agent, text: `New leads get their first reply in ${s.avgFirstReply} minutes on average. ${s.leadCount ? Math.round((sp / s.leadCount) * 100) : 0}% were answered within 5 minutes. Website form leads average ${s.formLeads ? Math.round((s.leads.filter((l) => l.source === "form").reduce((a, l) => a + l.firstReplyMin, 0) / s.formLeads) * 10) / 10 : 0} minutes.` };
+    }
+    if (has(q, /best|most|top/i)) { const src = [...sources(ds, 30)].sort((a, b) => b.n - a.n)[0]; return { agent, text: `${src.label} send the most leads: ${src.n} of ${s.leadCount} in the last 30 days.` }; }
     return { agent, text: `${s.leadCount} leads in the last 30 days (${delta(s.leadCount, s.prevLeads) >= 0 ? "+" : ""}${delta(s.leadCount, s.prevLeads)}% vs the month before). Average time to first reply: ${s.avgFirstReply} minutes. Website form leads: ${s.formLeads}.` };
   }
 
@@ -84,6 +108,8 @@ export function answer(ds: Dataset, agent: AgentId, q: string, settings?: Pick<S
   if (agent === "jobs") {
     const sched = ds.jobs.filter((j) => j.status === "scheduled");
     if (has(q, /schedul/i)) return { agent, text: sched.length ? `${sched.length} jobs scheduled: ${sched.slice(0, 5).map((j) => `${j.customer} (${j.service.toLowerCase()})`).join(", ")}.` : "No jobs are waiting to be scheduled." };
+    if (has(q, /biggest|largest|top|highest/i)) { const j = [...ds.jobs].filter((x) => x.value != null).sort((a, b) => (b.value ?? 0) - (a.value ?? 0))[0]; if (j) return { agent, text: `The biggest job you've valued is ${j.customer}, ${j.service.toLowerCase()}, at ${money(j.value!)}.` }; }
+    if (has(q, /complete|done|finish/i)) return { agent, text: `${ds.jobs.filter((j) => j.status === "completed").length} jobs are completed and ${ds.jobs.filter((j) => j.status === "in_progress").length} are in progress.` };
     return { agent, text: `${s.jobsBooked} jobs booked in the last 30 days (${delta(s.jobsBooked, s.prevJobs) >= 0 ? "+" : ""}${delta(s.jobsBooked, s.prevJobs)}% vs the month before). ${s.valued} have a value entered, totaling ${money(s.pipelineValue)}. Job values are the ones you enter, nothing is estimated.` };
   }
 
@@ -101,7 +127,7 @@ export function answer(ds: Dataset, agent: AgentId, q: string, settings?: Pick<S
     return { agent, text: `${cs.length} check-in calls in the last 30 days to people who asked for help and hadn't booked. ${c("booked")} booked, ${c("still_needs_help")} still need help, ${c("got_help_elsewhere")} found someone else, ${c("no_answer") + c("voicemail_left")} didn't pick up.` };
   }
 
-  return { agent: "dispatch", text: `I can route that. Try asking about calls, leads, follow-up emails, jobs, or a weekly report. For example: "${AGENTS[1].prompts[0]}"` };
+  return { agent: "dispatch", text: `I'm not sure which agent that belongs to. Try asking about calls, leads, follow-up emails, jobs, or a weekly report. For example: "${AGENTS[1].prompts[0]}"` };
 }
 
 export const ISSUE_TITLES = Object.fromEntries(Object.entries(ISSUES).map(([k, v]) => [k, v.title]));
