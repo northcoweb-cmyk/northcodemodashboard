@@ -1,0 +1,120 @@
+export type IssueKey =
+  | "poor_audio"
+  | "early_hangup"
+  | "out_of_area"
+  | "needs_pricing"
+  | "address_unclear";
+
+export type Outcome =
+  | "job_booked"
+  | "quote_requested"
+  | "transferred"
+  | "info"
+  | "spam"
+  | "issue";
+
+export type StepState = "done" | "flagged" | "skipped";
+
+export interface CallStep {
+  key: "answered" | "greeted" | "qualified" | "captured" | "classified" | "alerted";
+  label: string;
+  state: StepState;
+  note: string;
+}
+
+export interface Turn {
+  who: "ai" | "caller";
+  text: string;
+}
+
+export interface Call {
+  id: string;
+  at: number;
+  durationSec: number;
+  name: string;
+  phone: string;
+  afterHours: boolean;
+  service: string;
+  outcome: Outcome;
+  issue?: IssueKey;
+  recovered?: boolean;
+  transferred: boolean;
+  summary: string;
+  steps: CallStep[];
+  transcript: Turn[];
+}
+
+export type LeadSource = "call" | "form" | "email";
+export type LeadStatus = "new" | "contacted" | "replied" | "booked" | "lost";
+
+export interface Touch {
+  n: number;
+  label: string;
+  sentAt: number;
+  opened: boolean;
+  replied: boolean;
+}
+
+export interface Lead {
+  id: string;
+  at: number;
+  source: LeadSource;
+  name: string;
+  phone: string;
+  email: string;
+  service: string;
+  status: LeadStatus;
+  firstReplyMin: number;
+  callId?: string;
+  touches: Touch[];
+}
+
+export interface Job {
+  id: string;
+  leadId: string;
+  customer: string;
+  service: string;
+  value: number | null;
+  status: "scheduled" | "in_progress" | "completed";
+  at: number;
+  source: LeadSource;
+}
+
+export interface CheckIn {
+  id: string;
+  leadId: string;
+  name: string;
+  at: number;
+  result: "got_help_elsewhere" | "still_needs_help" | "no_answer" | "voicemail_left" | "booked";
+}
+
+export interface Fix {
+  issue: IssueKey;
+  title: string;
+  change: string;
+  daysAgo: number;
+  at: number;
+}
+
+export interface Dataset {
+  now: number;
+  calls: Call[];
+  leads: Lead[];
+  jobs: Job[];
+  checkins: CheckIn[];
+  fixes: Fix[];
+}
+
+export interface Settings {
+  businessName: string;
+  plan: string;
+  ownerName: string;
+  phone: string;
+  alertEmail: string;
+  hours: string;
+  serviceArea: string;
+  greeting: string;
+  agentNames: Record<string, string>;
+  modules: Record<"followup" | "forms" | "checkins", { active: boolean; sidebar: boolean }>;
+  bubbles: boolean;
+}
