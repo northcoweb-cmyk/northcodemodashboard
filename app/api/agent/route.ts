@@ -38,7 +38,7 @@ function context(ds: Dataset, crew: CrewMember[], business: string) {
   };
 }
 
-async function viaOpenAI(agent: AgentId, q: string, base: Reply, ctx: unknown): Promise<string | null> {
+async function viaOpenAI(agent: AgentId, q: string, base: Reply, ctx: unknown, history: { role: "user" | "assistant"; content: string }[] = []): Promise<string | null> {
   const key = process.env.OPENAI_API_KEY;
   if (!key || !budgetOk()) return null;
   try {
@@ -47,10 +47,11 @@ async function viaOpenAI(agent: AgentId, q: string, base: Reply, ctx: unknown): 
       headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         model: process.env.AGENT_MODEL || "gpt-4o-mini",
-        max_tokens: 380, temperature: 0.25,
+        max_tokens: 160, temperature: 0.25,
         messages: [
-          { role: "system", content: `You are the ${agentById(agent).name} agent in an owner's dashboard for a restoration company. Answer the owner's question in 2 to 5 plain sentences using ONLY the data provided. Use dollar signs for money and give totals when relevant. If the data doesn't contain the answer, say you don't have that yet. Never invent numbers, customers or results. Never say texting is live. Don't use markdown or bullet symbols; short sentences.` },
-          { role: "user", content: `Question: ${q}\n\nDashboard data (JSON):\n${JSON.stringify(ctx)}\n\nReference answer from the rules engine (may be incomplete):\n${base.text}` },
+          { role: "system", content: `You are the ${agentById(agent).name} agent in an owner's dashboard for a restoration company. The owner sees a card with the exact numbers right under your reply, so write ONE or TWO short sentences: the direct answer plus the single most useful takeaway. Do not repeat every figure, no lists, no markdown. Use dollar signs for money. Use ONLY the data provided; if it isn't there, say you don't have it yet. Never invent numbers, customers or results. Never say texting is live. For ROI or CTA questions, only state what the data supports (we track form submissions and bookings, not page views, and ad spend only if given).` },
+          ...history,
+          { role: "user", content: `Question: ${q}\n\nDashboard data (JSON):\n${JSON.stringify(ctx)}\n\nCard shown to the owner:\n${JSON.stringify(base.card ?? null)}\n\nRules-engine draft:\n${base.text}` },
         ],
       }),
     });
@@ -61,7 +62,7 @@ async function viaOpenAI(agent: AgentId, q: string, base: Reply, ctx: unknown): 
 }
 
 export async function POST(req: Request) {
-  const body = (await req.json().catch(() => ({}))) as { q?: string; agent?: AgentId | "auto"; businessName?: string; followup?: boolean; checkins?: boolean; crewOn?: boolean; crew?: CrewMember[]; sim?: SimStore };
+  const body = (await req.json().catch(() => ({}))) as { q?: string; agent?: AgentId | "auto"; businessName?: string; followup?: boolean; checkins?: boolean; crewOn?: boolean; crew?: CrewMember[]; sim?: SimStore; adSpend?: number; history?: { role: "user" | "agent"; text: string }[] };
   const q = String(body.q || "").slice(0, 400).trim();
   if (!q) return NextResponse.json({ error: "empty" }, { status: 400 });
   const sim: SimStore = body.sim && Array.isArray(body.sim.calls) ? { calls: body.sim.calls.slice(0, 40), leads: (body.sim.leads || []).slice(0, 40), jobs: (body.sim.jobs || []).slice(0, 40) } : EMPTY_SIM;
@@ -69,7 +70,8 @@ export async function POST(req: Request) {
   const crew = Array.isArray(body.crew) ? body.crew.slice(0, 30) : [];
   const business = body.businessName || "your business";
   const routed = body.agent && body.agent !== "auto" && body.agent !== "dispatch" ? body.agent : routeQuestion(q, { followup: body.followup !== false, checkins: body.checkins === true, crew: body.crewOn !== false });
-  const base = answer(ds, routed, q, { businessName: business, crew });
-  const text = await viaOpenAI(base.agent, q, base, context(ds, crew, business));
+  const base = answer(ds, routed, q, { businessName: business, crew, adSpend: Number(body.adSpend) || 0 });
+  const history = Array.isArray(body.history) ? body.history.slice(-6).map((m) => ({ role: m.role === "user" ? ("user" as const) : ("assistant" as const), content: String(m.text).slice(0, 400) })) : [];
+  const text = await viaOpenAI(base.agent, q, base, context(ds, crew, business), history);
   return NextResponse.json({ ...base, text: text ?? base.text, usedModel: !!text });
 }

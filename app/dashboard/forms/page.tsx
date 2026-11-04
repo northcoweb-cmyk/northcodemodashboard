@@ -52,7 +52,7 @@ function Forms({ ds }: { ds: Dataset }) {
           </Card>
         </div>
       </div>
-      <LeadTimelineSheet lead={sel} now={ds.now} followup={settings.modules.followup.active} onClose={() => setSel(null)} />
+      <LeadTimelineSheet lead={sel} followup={settings.modules.followup.active} onClose={() => setSel(null)} />
     </>
   );
 }

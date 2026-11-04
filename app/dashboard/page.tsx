@@ -12,6 +12,7 @@ import { dayLabel } from "@/components/kit";
 import { cn } from "@/lib/utils";
 import { JobsTaskList } from "@/components/jobs-tasks";
 import { ImprovementsCard } from "@/components/improvements-card";
+import { TouchCard } from "@/components/touch-card";
 import type { Dataset } from "@/lib/types";
 
 function Overview({ ds }: { ds: Dataset }) {
@@ -35,7 +36,7 @@ function Overview({ ds }: { ds: Dataset }) {
     <>
       <PageTitle title={`${hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening"}, ${settings.ownerName.split(" ")[0]}`} sub="Your last 30 days at a glance. Click any card to see how it's produced." />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Stat icon={PhoneCall} label="Calls answered" value={s.answered} delta={delta(s.answered, s.prevAnswered)} hint="vs previous 30 days" explain="calls" />
+        <Stat icon={PhoneCall} label="Calls answered" value={s.answered} delta={delta(s.answered, s.prevAnswered)} hint={`${s.answerRate}% answer rate · ${s.missed} hit a busy line`} explain="calls" />
         <Stat icon={Moon} label="After-hours calls" value={s.afterHours} hint={`${s.afterHoursPct}% of all calls`} explain="afterhours" />
         <Stat icon={Users} label="Leads captured" value={s.leadCount} delta={delta(s.leadCount, s.prevLeads)} hint="vs previous 30 days" explain="leads" />
         <Stat icon={Timer} label="Time to first reply" value={s.avgFirstReply} unit="min" hint="average, all sources" explain="reply" />
@@ -89,7 +90,7 @@ function Overview({ ds }: { ds: Dataset }) {
         </Card>
       </div>
 
-      <div className="mt-4"><ImprovementsCard ds={ds} /></div>
+      <div className="mt-4 grid gap-4 lg:grid-cols-2"><TouchCard ds={ds} /><ImprovementsCard ds={ds} /></div>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2" explain="heatmap"><CardHead title="When calls come in" sub="By day and hour, last 30 days" /><Heatmap grid={byHour(ds, 30)} /></Card>

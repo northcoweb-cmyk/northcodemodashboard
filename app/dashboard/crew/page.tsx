@@ -1,25 +1,53 @@
 "use client";
 
 import { useState } from "react";
-import { Check, MapPin, Phone, Send } from "lucide-react";
+import { Check, MapPin, Phone, Plus, Send, Trash2 } from "lucide-react";
 import { Gate } from "@/components/gate";
 import { Card, CardHead, PageTitle, Pill, when } from "@/components/kit";
-import { Editable } from "@/components/ui/editable";
+import { Sheet } from "@/components/ui/sheet";
 import { dispatches, type Dispatch } from "@/lib/dispatch";
+import { SERVICES } from "@/lib/sim";
 import { useSettings } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import type { Dataset } from "@/lib/types";
+import type { CrewMember, Dataset } from "@/lib/types";
 
 const ST: Record<string, [string, string]> = { available: ["good", "Available"], on_job: ["warn", "On a job"], off: ["mute", "Off today"] };
 const ORDER = ["available", "on_job", "off"] as const;
+const COLORS = ["#2a62e8", "#12935f", "#b9770e", "#8a4fe0", "#d6457a", "#0e8aa6", "#c2410c"];
 const initials = (n: string) => n.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase();
+const input = "rounded-lg border border-border bg-background px-3 py-2 text-[13px] outline-none focus:border-foreground/25";
+
+function CrewForm({ member, onSave, onRemove, onClose }: { member: CrewMember | null; onSave: (m: CrewMember) => void; onRemove?: () => void; onClose: () => void }) {
+  const { settings } = useSettings();
+  const [m, setM] = useState<CrewMember>(member ?? { id: `cr${Date.now()}`, name: "", role: "Technician", phone: "", skills: ["Water damage"], color: COLORS[settings.crew.length % COLORS.length], status: "available" });
+  const toggle = (s: string) => setM({ ...m, skills: m.skills.includes(s) ? m.skills.filter((x) => x !== s) : [...m.skills, s] });
+  const ok = m.name.trim() && m.phone.trim() && m.skills.length;
+  return (
+    <div className="flex flex-col gap-5">
+      <div className="grid gap-3">
+        <label className="grid gap-1.5 text-xs text-muted-foreground">Name<input autoFocus value={m.name} onChange={(e) => setM({ ...m, name: e.target.value })} placeholder="Full name" className={input} /></label>
+        <div className="grid grid-cols-2 gap-3">
+          <label className="grid gap-1.5 text-xs text-muted-foreground">Role<input value={m.role} onChange={(e) => setM({ ...m, role: e.target.value })} className={input} /></label>
+          <label className="grid gap-1.5 text-xs text-muted-foreground">Mobile number<input value={m.phone} onChange={(e) => setM({ ...m, phone: e.target.value })} placeholder="(253) 555-0100" className={input} /></label>
+        </div>
+      </div>
+      <div><div className="mb-2 text-xs text-muted-foreground">Jobs they take</div><div className="flex flex-wrap gap-2">{SERVICES.map((s) => <button key={s} onClick={() => toggle(s)} className={cn("rounded-full border px-3 py-1.5 text-xs transition", m.skills.includes(s) ? "border-foreground bg-foreground text-background" : "border-border text-muted-foreground hover:text-foreground")}>{s}</button>)}</div></div>
+      <div><div className="mb-2 text-xs text-muted-foreground">Status today</div><div className="flex gap-2">{ORDER.map((s) => <button key={s} onClick={() => setM({ ...m, status: s })} className={cn("rounded-full border px-3 py-1.5 text-xs transition", m.status === s ? "border-foreground bg-foreground/10" : "border-border text-muted-foreground")}>{ST[s][1]}</button>)}</div></div>
+      <div className="flex items-center justify-between gap-3 border-t border-border pt-4">
+        {onRemove ? <button onClick={onRemove} className="flex items-center gap-1.5 text-xs text-muted-foreground transition hover:text-bad"><Trash2 className="size-3.5" />Remove</button> : <span />}
+        <div className="flex gap-2"><button onClick={onClose} className="rounded-lg border border-border px-4 py-2 text-xs text-muted-foreground">Cancel</button><button disabled={!ok} onClick={() => { onSave({ ...m, name: m.name.trim() }); onClose(); }} className="rounded-lg bg-foreground px-4 py-2 text-xs font-medium text-background disabled:opacity-30">{member ? "Save" : "Add to crew"}</button></div>
+      </div>
+    </div>
+  );
+}
 
 function Crew({ ds }: { ds: Dataset }) {
   const { settings, update } = useSettings();
   const list = dispatches(ds, settings.crew, settings.businessName, 25);
   const [sel, setSel] = useState<Dispatch | null>(null);
+  const [edit, setEdit] = useState<CrewMember | "new" | null>(null);
   const cur = sel ?? list[0];
-  const patch = (id: string, p: Partial<(typeof settings.crew)[number]>) => update({ crew: settings.crew.map((c) => (c.id === id ? { ...c, ...p } : c)) });
+  const save = (m: CrewMember) => update({ crew: settings.crew.some((c) => c.id === m.id) ? settings.crew.map((c) => (c.id === m.id ? m : c)) : [...settings.crew, m] });
   const jobsFor = (id: string) => list.filter((d) => d.crew.some((c) => c.id === id)).length;
 
   return (
@@ -33,20 +61,18 @@ function Crew({ ds }: { ds: Dataset }) {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {settings.crew.map((c) => (
-          <Card key={c.id} className="p-4">
+          <Card key={c.id} className="p-4" onClick={() => setEdit(c)}>
             <div className="flex items-start gap-3.5">
               <span className="flex size-11 shrink-0 items-center justify-center rounded-full text-sm font-semibold text-white" style={{ background: c.color }}>{initials(c.name)}</span>
-              <div className="min-w-0 flex-1">
-                <Editable value={c.name} onSave={(v) => patch(c.id, { name: v })} className="block truncate text-[14px] font-medium" />
-                <Editable value={c.role} onSave={(v) => patch(c.id, { role: v })} className="mt-0.5 block truncate text-xs text-muted-foreground" />
-              </div>
-              <button onClick={() => patch(c.id, { status: ORDER[(ORDER.indexOf(c.status) + 1) % 3] })} aria-label="Change status"><Pill tone={ST[c.status][0]}>{ST[c.status][1]}</Pill></button>
+              <div className="min-w-0 flex-1"><div className="truncate text-[14px] font-medium">{c.name}</div><div className="mt-0.5 truncate text-xs text-muted-foreground">{c.role}</div></div>
+              <Pill tone={ST[c.status][0]}>{ST[c.status][1]}</Pill>
             </div>
-            <div className="mt-4 flex items-center gap-2 text-[13px] text-muted-foreground"><Phone className="size-3.5" strokeWidth={1.5} /><Editable value={c.phone} onSave={(v) => patch(c.id, { phone: v })} className="tnum" /></div>
+            <div className="mt-4 flex items-center gap-2 text-[13px] text-muted-foreground"><Phone className="size-3.5" strokeWidth={1.5} /><span className="tnum">{c.phone}</span></div>
             <div className="mt-3 flex flex-wrap gap-1.5">{c.skills.map((s) => <span key={s} className="rounded-full bg-foreground/[0.06] px-2 py-0.5 text-[11px] text-muted-foreground">{s}</span>)}</div>
             <div className="mt-3 border-t border-border/60 pt-3 text-xs text-muted-foreground"><span className="tnum text-foreground">{jobsFor(c.id)}</span> recent dispatches</div>
           </Card>
         ))}
+        <button onClick={() => setEdit("new")} className="flex min-h-[170px] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-border text-sm text-muted-foreground transition hover:border-foreground/30 hover:text-foreground"><Plus className="size-5" strokeWidth={1.5} />Add crew member</button>
       </div>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-5">
@@ -80,6 +106,10 @@ function Crew({ ds }: { ds: Dataset }) {
           </Card>
         )}
       </div>
+
+      <Sheet open={!!edit} onOpenChange={(o) => !o && setEdit(null)} title={edit === "new" ? "Add crew member" : "Crew member"} description="They get dispatched for the jobs you pick" width="max-w-md">
+        {edit && <CrewForm key={edit === "new" ? "new" : edit.id} member={edit === "new" ? null : edit} onSave={save} onRemove={edit === "new" ? undefined : () => { update({ crew: settings.crew.filter((c) => c.id !== (edit as CrewMember).id) }); setEdit(null); }} onClose={() => setEdit(null)} />}
+      </Sheet>
     </>
   );
 }

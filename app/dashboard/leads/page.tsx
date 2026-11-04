@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Gate } from "@/components/gate";
 import { LeadTimelineSheet } from "@/components/lead-timeline";
+import { TouchCard } from "@/components/touch-card";
 import { useSettings } from "@/lib/store";
 import { Card, CardHead, PageTitle, Pill, Table, Stat, when } from "@/components/kit";
 import { summary, sources } from "@/lib/stats";
@@ -25,6 +26,7 @@ function Leads({ ds }: { ds: Dataset }) {
         <Stat icon={Timer} label="Time to first reply" value={s.avgFirstReply} unit="min" explain="reply" />
         <Stat icon={FileInput} label="From website forms" value={s.formLeads} explain="sources" />
       </div>
+      <div className="mt-4"><TouchCard ds={ds} limit={4} /></div>
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHead title="All leads" sub="Most recent first" />
@@ -43,7 +45,7 @@ function Leads({ ds }: { ds: Dataset }) {
         </Card>
         <Card explain="sources" className="h-fit"><CardHead title="By source" sub="Last 30 days" /><BarList rows={sources(ds, 30).map((x) => ({ label: x.label, n: x.n }))} color="#4ade9a" /></Card>
       </div>
-      <LeadTimelineSheet lead={sel} now={ds.now} followup={settings.modules.followup.active} onClose={() => setSel(null)} />
+      <LeadTimelineSheet lead={sel} followup={settings.modules.followup.active} onClose={() => setSel(null)} />
     </>
   );
 }

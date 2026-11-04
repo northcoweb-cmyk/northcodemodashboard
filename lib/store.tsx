@@ -4,10 +4,13 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import type { Dataset, Settings } from "./types";
 import { DEFAULT_CREW } from "./dispatch";
 import { EMPTY_SIM, mergeSim, withSim, type SimStore } from "./sim";
+import { locationOf } from "./lead";
 
 export const DEFAULTS: Settings = {
   crew: DEFAULT_CREW,
   autoDispatch: true,
+  adSpend: 0,
+  location: "all",
   businessName: "Harborline Restoration",
   plan: "Growth",
   ownerName: "Mike Harlan",
@@ -57,7 +60,14 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => { fetch("/api/data").then((r) => (r.ok ? r.json() : Promise.reject())).then(setBase).catch(() => setError(true)); }, []);
   useEffect(() => { try { const raw = localStorage.getItem(SIM_KEY); if (raw) setSim({ ...EMPTY_SIM, ...JSON.parse(raw) }); } catch {} }, []);
   const persist = (n: SimStore) => { setSim(n); try { localStorage.setItem(SIM_KEY, JSON.stringify(n)); } catch {} };
-  const data = useMemo(() => (base ? withSim(base, sim) : null), [base, sim]);
+  const { settings } = useSettings();
+  const data = useMemo(() => {
+    if (!base) return null;
+    const all = withSim(base, sim);
+    if (settings.location === "all") return all;
+    const keep = (a: string) => locationOf(a) === settings.location;
+    return { ...all, calls: all.calls.filter((c) => keep(c.address)), leads: all.leads.filter((l) => keep(l.address)), jobs: all.jobs.filter((j) => keep(j.address)) };
+  }, [base, sim, settings.location]);
   const value = useMemo<DataValue>(() => ({ data, error, sim, simulate: (s) => persist(mergeSim(sim, s)), clearSim: () => persist(EMPTY_SIM) }), [data, error, sim]);
   return <DataCtx.Provider value={value}>{children}</DataCtx.Provider>;
 }

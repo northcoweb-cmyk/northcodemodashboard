@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ArrowUpRight, Sparkles } from "lucide-react";
 import { Card, dayLabel } from "@/components/kit";
 import { Sheet } from "@/components/ui/sheet";
+import { AskAgent } from "@/components/ask-agent";
 import { issueRows, summary } from "@/lib/stats";
 import type { Dataset } from "@/lib/types";
 
@@ -37,6 +38,7 @@ export function ImprovementsCard({ ds }: { ds: Dataset }) {
             </li>
           ))}
         </ul>
+        <div className="mt-6"><AskAgent agent="receptionist" prompts={["Why couldn't it hear some callers?", "What should I fix next?"]} onAsk={() => setOpen(false)} /></div>
       </Sheet>
     </>
   );

@@ -12,6 +12,7 @@ export const SIM_OUTCOMES: { key: SimOutcome; label: string }[] = [
   { key: "transferred", label: "Transferred to owner" },
   { key: "info", label: "Question answered" },
   { key: "spam", label: "Spam" },
+  { key: "missed", label: "Line busy (missed)" },
   ...(Object.keys(ISSUES) as IssueKey[]).map((k) => ({ key: k as SimOutcome, label: `Issue: ${ISSUES[k].title}` })),
 ];
 
@@ -23,12 +24,13 @@ export function simulateCall(f: { name: string; phone: string; service: string; 
   const outcome: Outcome = isIssue ? "issue" : (f.outcome as Outcome);
   const issue = isIssue ? (f.outcome as IssueKey) : undefined;
   const transferred = outcome === "transferred";
+  const missed = outcome === "missed";
   const recovered = issue ? issue === "poor_audio" || issue === "needs_pricing" || issue === "address_unclear" : undefined;
   const street = f.address.split(",")[0];
   const call: Call = {
-    id: uid("c"), at, durationSec: outcome === "spam" ? 12 : issue === "early_hangup" ? 5 : 90 + Math.floor(Math.random() * 120),
-    name: outcome === "spam" ? "Unknown caller" : f.name, phone: f.phone, afterHours: isAfterHours(at), service: f.service, address: f.address, outcome, issue, recovered, transferred,
-    summary: issue ? `${ISSUES[issue].title}.` : outcome === "spam" ? "Recorded sales call, no alert sent." : outcome === "info" ? "Question about services, answered. Follow-up sent by email." : transferred ? `${f.service}. Caller frustrated, transferred live to the owner.` : outcome === "quote_requested" ? `${f.service} estimate request at ${f.address}.` : `${f.service} at ${f.address}. Job alert sent.`,
+    id: uid("c"), at, durationSec: missed ? 0 : outcome === "spam" ? 12 : issue === "early_hangup" ? 5 : 90 + Math.floor(Math.random() * 120),
+    name: outcome === "spam" ? "Unknown caller" : missed ? "Missed call" : f.name, phone: f.phone, afterHours: isAfterHours(at), service: f.service, address: f.address, outcome, issue, recovered, transferred,
+    summary: issue ? `${ISSUES[issue].title}.` : missed ? "Line was busy with another caller. Number saved and a callback task emailed." : outcome === "spam" ? "Recorded sales call, no alert sent." : outcome === "info" ? "Question about services, answered. Follow-up sent by email." : transferred ? `${f.service}. Caller frustrated, transferred live to the owner.` : outcome === "quote_requested" ? `${f.service} estimate request at ${f.address}.` : `${f.service} at ${f.address}. Job alert sent.`,
     steps: stepsFor(outcome, issue, transferred), transcript: transcript(outcome, issue, f.name, f.service, street),
   };
   const out: SimStore = { calls: [call], leads: [], jobs: [] };

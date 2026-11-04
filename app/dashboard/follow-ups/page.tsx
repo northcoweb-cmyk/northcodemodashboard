@@ -49,7 +49,7 @@ function FollowUps({ ds }: { ds: Dataset }) {
           ))}
         </Table>
       </Card>
-      <LeadTimelineSheet lead={sel} now={ds.now} followup onClose={() => setSel(null)} />
+      <LeadTimelineSheet lead={sel} followup onClose={() => setSel(null)} />
     </>
   );
 }

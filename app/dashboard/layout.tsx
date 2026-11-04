@@ -9,6 +9,7 @@ import { agentById } from "@/lib/agents";
 import { Editable } from "@/components/ui/editable";
 import { AgentChatProvider, useChat } from "@/components/agent-chat";
 import { AdminDialog } from "@/components/admin-dialog";
+import { LOCATIONS } from "@/lib/lead";
 import { ExplainProvider } from "@/components/explain-provider";
 import { DataProvider, SettingsProvider, useSettings } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -66,7 +67,7 @@ function Shell({ children }: { children: React.ReactNode }) {
         <header className="flex print:hidden h-14 shrink-0 items-center gap-3 border-b border-border px-4 sm:px-6">
           <button className="rounded-md p-1.5 text-muted-foreground hover:bg-foreground/5 md:hidden" onClick={() => setMobile(true)} aria-label="Menu"><Menu className="size-5" strokeWidth={1.5} /></button>
           <div className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground"><span className="truncate">{settings.businessName}</span><span>/</span><span className="truncate font-medium text-foreground">{TITLES[path] || "Dashboard"}</span></div>
-          <div className="ml-auto flex items-center gap-3 text-xs text-muted-foreground"><button onClick={flip} aria-label="Toggle theme" className="rounded-md p-1.5 transition hover:bg-foreground/5 hover:text-foreground">{dark ? <Sun className="size-4" strokeWidth={1.5} /> : <Moon className="size-4" strokeWidth={1.5} />}</button><span className="size-1.5 animate-pulse rounded-full bg-good" /><span className="hidden sm:inline">Receptionist online</span></div>
+          <div className="ml-auto flex items-center gap-3 text-xs text-muted-foreground"><select value={settings.location} onChange={(e) => update({ location: e.target.value })} aria-label="Location" className="hidden rounded-md border border-border bg-transparent px-2 py-1 text-xs text-foreground outline-none sm:block"><option value="all">All locations</option>{LOCATIONS.map((l) => <option key={l.name} value={l.name}>{l.name}</option>)}</select><button onClick={flip} aria-label="Toggle theme" className="rounded-md p-1.5 transition hover:bg-foreground/5 hover:text-foreground">{dark ? <Sun className="size-4" strokeWidth={1.5} /> : <Moon className="size-4" strokeWidth={1.5} />}</button><span className="size-1.5 animate-pulse rounded-full bg-good" /><span className="hidden sm:inline">Receptionist online</span></div>
         </header>
         <main className="no-scrollbar flex-1 overflow-y-auto print:overflow-visible px-4 pb-32 pt-6 sm:px-6 lg:px-8"><div className="mx-auto w-full max-w-[1180px]">{children}</div></main>
         <form className="print:hidden pointer-events-none fixed inset-x-0 bottom-4 z-30 flex justify-center px-4 md:left-[260px]" onSubmit={(e) => { e.preventDefault(); if (q.trim()) { chat.ask(q); setQ(""); } }}>
@@ -84,6 +85,6 @@ function Shell({ children }: { children: React.ReactNode }) {
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <SettingsProvider><DataProvider><ExplainProvider><AgentChatProvider><Shell>{children}</Shell></AgentChatProvider></ExplainProvider></DataProvider></SettingsProvider>
+    <SettingsProvider><DataProvider><AgentChatProvider><ExplainProvider><Shell>{children}</Shell></ExplainProvider></AgentChatProvider></DataProvider></SettingsProvider>
   );
 }

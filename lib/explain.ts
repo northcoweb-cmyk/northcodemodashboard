@@ -74,3 +74,17 @@ export const EXPLAIN: Record<string, Explain> = {
   },
   heatmap: call("When calls come in", "Every call is grouped by day of week and hour in your time zone."),
 };
+
+export const EXPLAIN_PROMPTS: Record<string, string[]> = {
+  calls: ["How many calls came in after hours?", "When is my busiest hour?"],
+  afterhours: ["How many after-hours calls turned into jobs?", "When is my busiest hour?"],
+  duration: ["What's my latest call?"],
+  handling: ["How is every call handled?"],
+  heatmap: ["When is my busiest hour?"],
+  leads: ["What's my conversion rate by source?", "How fast do we reply to new leads?"],
+  reply: ["How fast do we reply to new leads?", "What's my conversion rate by source?"],
+  sources: ["What's my conversion rate by source?", "Which form converts best?"],
+  jobs: ["What jobs are scheduled?", "What's my biggest job?"],
+  followup: ["How are the follow-up emails doing?", "What's my conversion rate by source?"],
+  wonback: ["How are the follow-up emails doing?"],
+};

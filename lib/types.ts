@@ -11,6 +11,7 @@ export type Outcome =
   | "transferred"
   | "info"
   | "spam"
+  | "missed"
   | "issue";
 
 export type StepState = "done" | "flagged" | "skipped";
@@ -65,6 +66,8 @@ export interface Lead {
   email: string;
   service: string;
   address: string;
+  /** What we quoted, in dollars, when a quote went out. */
+  quote?: number;
   /** For form leads: which form or page they reached out from. */
   via?: string;
   status: LeadStatus;
@@ -127,6 +130,10 @@ export interface CrewMember {
 export interface Settings {
   crew: CrewMember[];
   autoDispatch: boolean;
+  /** Monthly marketing spend in dollars, entered by the owner. Needed for ROI. */
+  adSpend: number;
+  /** 'all' or the name of one location. */
+  location: string;
   businessName: string;
   plan: string;
   ownerName: string;

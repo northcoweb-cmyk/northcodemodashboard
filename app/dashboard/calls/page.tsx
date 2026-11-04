@@ -5,6 +5,7 @@ import { Check, Flag, Minus } from "lucide-react";
 import { Gate } from "@/components/gate";
 import { Card, CardHead, PageTitle, Pill, Table, dur, when } from "@/components/kit";
 import { Sheet } from "@/components/ui/sheet";
+import { AskAgent } from "@/components/ask-agent";
 import { ISSUES } from "@/lib/seed";
 import { cn } from "@/lib/utils";
 import type { Call, Dataset } from "@/lib/types";
@@ -31,6 +32,7 @@ function CallSheet({ call, onClose }: { call: Call | null; onClose: () => void }
             </ol>
           </div>
           {call.issue && <div className="rounded-xl border border-warn/25 bg-warn/[0.06] p-3.5 text-[13px]"><div className="mb-1 font-medium">How we handle this now</div><p className="text-muted-foreground">{ISSUES[call.issue].fix}</p></div>}
+          <AskAgent agent="receptionist" prompts={["What have you improved?", "How many calls came in after hours?"]} onAsk={onClose} />
           <div>
             <h4 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground/70">Transcript</h4>
             <div className="flex flex-col gap-2">

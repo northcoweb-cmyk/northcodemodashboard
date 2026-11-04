@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Lock } from "lucide-react";
 import { Sheet } from "@/components/ui/sheet";
 import { AGENTS } from "@/lib/agents";
@@ -53,6 +53,20 @@ function SimPanel() {
   );
 }
 
+function AiPanel() {
+  const [st, setSt] = useState<{ keySet: boolean; model: string; dailyCap: number } | null>(null);
+  const [res, setRes] = useState<string>("");
+  useEffect(() => { fetch("/api/agent/status").then((r) => r.json()).then(setSt).catch(() => {}); }, []);
+  async function test() { setRes("Testing..."); const r = await fetch("/api/agent/status", { method: "POST" }).then((x) => x.json()).catch(() => ({ ok: false, error: "Request failed" })); setRes(r.ok ? "Working. OpenAI answered." : `Failed: ${r.error}`); }
+  return (
+    <section className="flex flex-col gap-2.5 rounded-xl border border-border p-4">
+      <h4 className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">AI answers</h4>
+      <p className="text-[13px]">{st ? (st.keySet ? `OpenAI key found. Model ${st.model}, up to ${st.dailyCap} questions a day.` : "No OpenAI key on this deployment. Agents use the built-in answers.") : "Checking..."}</p>
+      <div className="flex items-center gap-3"><button onClick={test} className="rounded-lg border border-border px-3 py-2 text-xs text-muted-foreground transition hover:text-foreground">Test the connection</button>{res && <span className={cn("text-xs", res.startsWith("Working") ? "text-good" : "text-muted-foreground")}>{res}</span>}</div>
+    </section>
+  );
+}
+
 const MODULES = [
   { k: "crew" as const, title: "Crew dispatch", sub: "Sends the right crew the address and customer details when a job is booked." },
   { k: "followup" as const, title: "Follow-up emails", sub: "Instant reply, next-day check-in, day-4 follow-up." },
@@ -81,6 +95,7 @@ export function AdminDialog({ open, onOpenChange }: { open: boolean; onOpenChang
       ) : (
         <div className="flex flex-col gap-7">
           <SimPanel />
+          <AiPanel />
           <section className="flex flex-col gap-4">
             <h4 className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">Modules</h4>
             {MODULES.map((m) => (

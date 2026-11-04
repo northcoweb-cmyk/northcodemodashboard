@@ -17,7 +17,9 @@ export function summary(ds: Dataset, days = 30, offset = 0) {
   const issues = calls.filter((c) => c.issue);
   return {
     days, calls, leads, jobs,
-    answered: calls.length, prevAnswered: pcalls.length,
+    received: calls.length, missed: calls.filter((c) => c.outcome === "missed").length,
+    answered: calls.filter((c) => c.outcome !== "missed").length, prevAnswered: pcalls.filter((c) => c.outcome !== "missed").length,
+    answerRate: calls.length ? Math.round((calls.filter((c) => c.outcome !== "missed").length / calls.length) * 1000) / 10 : 100,
     afterHours: calls.filter((c) => c.afterHours).length,
     afterHoursPct: pct(calls.filter((c) => c.afterHours).length, calls.length),
     avgDuration: Math.round(avg(real.map((c) => c.durationSec))),
@@ -57,6 +59,7 @@ export function outcomes(ds: Dataset, days = 30) {
     { key: "info", label: "Question answered", n: count((c) => c.outcome === "info") },
     { key: "issue", label: "Follow-up needed", n: count((c) => c.outcome === "issue") },
     { key: "spam", label: "Spam filtered", n: count((c) => c.outcome === "spam") },
+    { key: "missed", label: "Line busy", n: count((c) => c.outcome === "missed") },
   ];
 }
 

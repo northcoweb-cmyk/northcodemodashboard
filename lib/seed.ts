@@ -51,6 +51,7 @@ export const FORM_PAGES = [["Emergency request form", "/emergency"], ["Free esti
 const VALUE: Record<string, [number, number]> = { "Water damage": [2800, 6500], "Burst pipe": [2200, 5500], "Fire & smoke": [8000, 22000], Mold: [2500, 7000], "Sewage backup": [3000, 7500], "Storm damage": [2000, 9000] };
 const SVC_W: [string, number][] = [["Water damage", 35], ["Burst pipe", 20], ["Mold", 15], ["Storm damage", 12], ["Sewage backup", 10], ["Fire & smoke", 8]];
 function wsvc(r: () => number) { let x = r() * 100; for (const [n, w] of SVC_W) { x -= w; if (x <= 0) return n; } return "Water damage"; }
+const qv = (r: () => number, svc: string) => { const g = VALUE[svc] || [2500, 6000]; return Math.round((g[0] + r() * (g[1] - g[0])) / 50) * 50; };
 const SERVICES = ["Water damage","Burst pipe","Fire & smoke","Mold","Sewage backup","Storm damage"];
 
 function rng(seed: number) {
@@ -91,6 +92,7 @@ export function transcript(outcome: Outcome, issue: IssueKey | undefined, name: 
     return [open, c(`I've got ${service.toLowerCase()}. Before anything, what does this cost and will insurance cover it?`), a("The team works directly with most insurance companies and the estimate is done on site. I can get someone out to you. What's the address?"), c(`${addr}.`), a("Let me read that back to confirm. Is that right?"), c("Yes, that's right.")];
   if (issue === "address_unclear")
     return [open, c(`${service} in the basement.`), a("What's the address?"), c("Uh, off Union, near the school."), a("I need the street number to send someone. Can you give me the full address?"), c("I'll have to check, I'm not home.")];
+  if (outcome === "missed") return [{ who: "caller", text: "[busy signal, caller hung up]" }];
   if (outcome === "spam") return [open, c("This is a recorded message about your vehicle warranty..."), a("This number is for service requests only. Goodbye.")];
   if (outcome === "info")
     return [open, c("Do you guys do commercial properties?"), a("Yes, the team handles residential and commercial. Is there an active problem right now?"), c("No, just planning."), a("Understood. I'll send your question to the team and they'll reply by email.")];
@@ -103,6 +105,7 @@ export function transcript(outcome: Outcome, issue: IssueKey | undefined, name: 
 
 export function stepsFor(outcome: Outcome, issue: IssueKey | undefined, transferred: boolean): CallStep[] {
   const mk = (key: CallStep["key"], label: string, state: CallStep["state"], note: string): CallStep => ({ key, label, state, note });
+  if (outcome === "missed") return [mk("answered", "Answered", "flagged", "Line was busy with another caller"), mk("greeted", "Greeted", "skipped", "Caller hung up before pickup"), mk("qualified", "Urgency checked", "skipped", "Not reached"), mk("captured", "Details captured", "skipped", "Number saved from caller ID"), mk("classified", "Call classified", "done", "Marked as a missed call"), mk("alerted", "Owner alerted", "done", "Callback task emailed")];
   const bad = issue === "poor_audio" || issue === "early_hangup";
   return [
     mk("answered", "Answered", "done", "Picked up on the first ring"),
@@ -127,6 +130,8 @@ export function generate(now = Date.now()): Dataset {
     .sort((a, b) => FIX_DAYS[b] - FIX_DAYS[a])
     .map((k) => ({ issue: k, title: ISSUES[k].title, change: ISSUES[k].fix, daysAgo: FIX_DAYS[k], at: now - FIX_DAYS[k] * DAY }));
 
+  const pool = Array.from({ length: 14 }, () => ({ name: nm(), phone: phone() }));
+
   for (let d = 60; d >= 0; d--) {
     const dayStart = now - d * DAY;
     const dow = new Date(dayStart).getDay();
@@ -136,7 +141,7 @@ export function generate(now = Date.now()): Dataset {
       const hour = wpick(r, HOUR_W);
       const at = new Date(dayStart); at.setUTCHours(hour + 8, Math.floor(r() * 60), Math.floor(r() * 60), 0);
       let ts = at.getTime(); while (ts > now) ts -= DAY;
-      const name = nm(); const service = wsvc(r);
+      const ret = r() < 0.09 ? pool[Math.floor(r() * pool.length)] : null; const name = ret ? ret.name : nm(); const callerPhone = ret ? ret.phone : phone(); const service = wsvc(r);
       const addr = `${100 + Math.floor(r() * 8800)} ${pick(r, STREETS)}`;
       const full = `${addr}, ${pick(r, CITIES)}, WA`;
       // issue roll
@@ -148,17 +153,18 @@ export function generate(now = Date.now()): Dataset {
       let outcome: Outcome;
       let transferred = false;
       if (issue) outcome = "issue";
+      else if (r() < 0.014) outcome = "missed";
       else {
         const x = r();
         outcome = x < 0.14 ? "spam" : x < 0.56 ? "info" : x < 0.9 ? "quote_requested" : x < 0.94 ? "transferred" : "job_booked";
         if (outcome === "transferred") transferred = true;
       }
       const recovered = issue ? r() < (issue === "early_hangup" ? 0.1 : issue === "out_of_area" ? 0 : 0.55) : undefined;
-      const dur = issue === "early_hangup" ? 3 + Math.floor(r() * 6) : outcome === "spam" ? 8 + Math.floor(r() * 12) : issue === "poor_audio" ? 25 + Math.floor(r() * 25) : 55 + Math.floor(r() * 230);
+      const dur = outcome === "missed" ? 0 : issue === "early_hangup" ? 3 + Math.floor(r() * 6) : outcome === "spam" ? 8 + Math.floor(r() * 12) : issue === "poor_audio" ? 25 + Math.floor(r() * 25) : 55 + Math.floor(r() * 230);
       calls.push({
-        id: `c_${cid++}`, at: ts, durationSec: dur, name: outcome === "spam" ? "Unknown caller" : name, phone: phone(),
+        id: `c_${cid++}`, at: ts, durationSec: dur, name: outcome === "spam" ? "Unknown caller" : outcome === "missed" ? "Missed call" : name, phone: callerPhone,
         afterHours: isAfterHours(ts), service, address: full, outcome, issue, recovered, transferred,
-        summary: issue ? `${ISSUES[issue].title}.` : outcome === "spam" ? "Recorded sales call, no alert sent." : outcome === "info" ? `Question about services, answered. Follow-up sent by email.` : outcome === "transferred" ? `${service}. Caller frustrated, transferred live to the owner.` : outcome === "quote_requested" ? `${service} estimate request at ${addr}.` : `${service} at ${addr}. Job alert sent.`,
+        summary: issue ? `${ISSUES[issue].title}.` : outcome === "missed" ? "Line was busy with another caller. Number saved and a callback task emailed." : outcome === "spam" ? "Recorded sales call, no alert sent." : outcome === "info" ? `Question about services, answered. Follow-up sent by email.` : outcome === "transferred" ? `${service}. Caller frustrated, transferred live to the owner.` : outcome === "quote_requested" ? `${service} estimate request at ${addr}.` : `${service} at ${addr}. Job alert sent.`,
         steps: stepsFor(outcome, issue, transferred), transcript: transcript(outcome, issue, name, service, addr),
       });
     }
@@ -182,10 +188,10 @@ export function generate(now = Date.now()): Dataset {
   };
   const statusFor = (age: number): LeadStatus => { const x = r(); if (age < 2 * DAY) return x < 0.5 ? "new" : "contacted"; const v: LeadStatus = x < 0.075 ? "booked" : x < 0.22 ? "replied" : x < 0.46 ? "contacted" : "lost"; return v === "contacted" && age > 10 * DAY ? "lost" : v; };
   for (const c of calls) {
-    if (c.outcome === "spam" || c.outcome === "info" && r() < 0.85 || (c.issue && !c.recovered)) continue;
+    if (c.outcome === "spam" || c.outcome === "missed" || c.outcome === "info" && r() < 0.85 || (c.issue && !c.recovered)) continue;
     const st: LeadStatus = c.outcome === "job_booked" ? "booked" : c.outcome === "transferred" ? (r() < 0.7 ? "booked" : "contacted") : statusFor(now - c.at);
     const first = c.name.split(" ")[0].toLowerCase();
-    leads.push({ id: `l_${lid++}`, at: c.at, source: "call", name: c.name, phone: c.phone, email: `${first}${Math.floor(r() * 90)}@gmail.com`, service: c.service, address: c.address, status: st, firstReplyMin: 1 + Math.floor(r() * 4), callId: c.id, touches: mkTouches(c.at, st) });
+    leads.push({ id: `l_${lid++}`, at: c.at, source: "call", name: c.name, phone: c.phone, email: `${first}${Math.floor(r() * 90)}@gmail.com`, service: c.service, address: c.address, quote: st === "booked" || r() < 0.7 ? qv(r, c.service) : undefined, status: st, firstReplyMin: 1 + Math.floor(r() * 4), callId: c.id, touches: mkTouches(c.at, st) });
   }
   for (let d = 60; d >= 0; d--) {
     const nf = r() < 0.8 ? 1 : 0; const ne = r() < 0.2 ? 1 : 0;
@@ -194,7 +200,7 @@ export function generate(now = Date.now()): Dataset {
       const ts = now - d * DAY + (8 + Math.floor(r() * 12)) * 3600000 - 8 * 3600000 + Math.floor(r() * 3600000);
       if (ts > now) continue;
       const name = nm(); const st = statusFor(now - ts);
-      leads.push({ id: `l_${lid++}`, at: ts, source: src, name, phone: phone(), email: `${name.split(" ")[0].toLowerCase()}.${name.split(" ")[1].toLowerCase()}@${pick(r, ["gmail.com", "outlook.com", "yahoo.com"])}`, service: wsvc(r), address: `${100 + Math.floor(r() * 8800)} ${pick(r, STREETS)}, ${pick(r, CITIES)}, WA`, via: src === "form" ? (() => { const f = pick(r, FORM_PAGES); return `${f[0]} · ${f[1]}`; })() : undefined, status: st, firstReplyMin: src === "form" ? 1 + Math.floor(r() * 5) : 4 + Math.floor(r() * 22), touches: mkTouches(ts, st) });
+      leads.push({ id: `l_${lid++}`, at: ts, source: src, name, phone: phone(), email: `${name.split(" ")[0].toLowerCase()}.${name.split(" ")[1].toLowerCase()}@${pick(r, ["gmail.com", "outlook.com", "yahoo.com"])}`, service: wsvc(r), address: `${100 + Math.floor(r() * 8800)} ${pick(r, STREETS)}, ${pick(r, CITIES)}, WA`, quote: undefined, via: src === "form" ? (() => { const f = pick(r, FORM_PAGES); return `${f[0]} · ${f[1]}`; })() : undefined, status: st, firstReplyMin: src === "form" ? 1 + Math.floor(r() * 5) : 4 + Math.floor(r() * 22), touches: mkTouches(ts, st) });
     }
   }
   leads.sort((a, b) => b.at - a.at);
@@ -215,9 +221,10 @@ export function generate(now = Date.now()): Dataset {
     if (l.status !== "booked") continue;
     const age = now - l.at;
     const status = age < 3 * DAY ? "scheduled" : age < 9 * DAY ? "in_progress" : "completed";
-    const range = VALUE[l.service] || [2500, 6000]; const value = r() < 0.82 ? Math.round((range[0] + r() * (range[1] - range[0])) / 50) * 50 : null;
+    const value = l.quote != null && r() < 0.9 ? l.quote : l.quote == null && r() < 0.5 ? qv(r, l.service) : null;
     jobs.push({ id: `j_${jid++}`, leadId: l.id, customer: l.name, service: l.service, address: l.address, phone: l.phone, value, status: l.reactivation?.result === "won" ? (now - l.reactivation.sentAt < 3 * DAY ? "scheduled" : "completed") : status, at: l.reactivation?.result === "won" ? l.reactivation.sentAt + 5 * 3600000 : l.at + 3600000 * (2 + Math.floor(r() * 20)), source: l.source, reactivated: l.reactivation?.result === "won" || undefined });
   }
+  pool.forEach((c, i) => { const k = 1 + (i % 2); for (let h = 0; h < k; h++) { const svc = wsvc(r); jobs.push({ id: `j_${jid++}`, leadId: `l_hist${i}${h}`, customer: c.name, service: svc, address: `${100 + Math.floor(r() * 8800)} ${pick(r, STREETS)}, ${pick(r, CITIES)}, WA`, phone: c.phone, value: qv(r, svc), status: "completed", at: now - (75 + Math.floor(r() * 320)) * DAY, source: "call" }); } });
   jobs.sort((a, b) => b.at - a.at);
 
   // check-in calls: quote/info leads still open after 3 days

@@ -8,8 +8,9 @@ import { Editable } from "@/components/ui/editable";
 import { money } from "@/lib/stats";
 import { JobsTaskList } from "@/components/jobs-tasks";
 import { LeadTimelineSheet } from "@/components/lead-timeline";
+import { JobSheet } from "@/components/job-sheet";
 import { useSettings } from "@/lib/store";
-import type { Dataset, Lead } from "@/lib/types";
+import type { Dataset, Job, Lead } from "@/lib/types";
 
 const ST: Record<string, [string, string]> = { scheduled: ["blue", "Scheduled"], in_progress: ["warn", "In progress"], completed: ["good", "Completed"] };
 const KEY = "nc_job_values_v1";
@@ -17,6 +18,7 @@ const KEY = "nc_job_values_v1";
 function Jobs({ ds }: { ds: Dataset }) {
   const { settings } = useSettings();
   const [sel, setSel] = useState<Lead | null>(null);
+  const [selJob, setSelJob] = useState<Job | null>(null);
   const [vals, setVals] = useState<Record<string, number>>({});
   useEffect(() => { try { setVals(JSON.parse(localStorage.getItem(KEY) || "{}")); } catch {} }, []);
   const val = (j: Dataset["jobs"][number]) => vals[j.id] ?? j.value;
@@ -25,7 +27,7 @@ function Jobs({ ds }: { ds: Dataset }) {
   const valuedN = ds.jobs.filter((j) => val(j) != null).length;
   return (
     <>
-      <PageTitle title="Jobs" sub="Booked work. You type in each job's value after the estimate, so these numbers are yours, not ours." />
+      <PageTitle title="Jobs" sub="Booked work. Click a job for the customer, crew and how it got booked. Values are the ones you enter." />
       <div className="grid gap-4 sm:grid-cols-3">
         <Stat icon={Hammer} label="Jobs booked, 60 days" value={ds.jobs.length} explain="jobs" />
         <Stat icon={CalendarClock} label="Scheduled now" value={ds.jobs.filter((j) => j.status === "scheduled").length} explain="jobs" />
@@ -37,7 +39,7 @@ function Jobs({ ds }: { ds: Dataset }) {
         <CardHead title="All jobs" sub="Click a value to change it" />
         <Table head={["Customer", "Service", "Source", "Status", "Booked", "Value"]}>
           {ds.jobs.slice(0, 50).map((j) => (
-            <tr key={j.id} onClick={() => setSel(ds.leads.find((l) => l.id === j.leadId) ?? null)} className="cursor-pointer transition hover:bg-foreground/[0.03]">
+            <tr key={j.id} onClick={() => setSelJob(j)} className="cursor-pointer transition hover:bg-foreground/[0.03]">
               <td className="whitespace-nowrap font-medium">{j.customer}</td>
               <td className="whitespace-nowrap text-muted-foreground">{j.service}</td>
               <td className="whitespace-nowrap text-muted-foreground">{j.source === "call" ? "Phone call" : j.source === "form" ? "Website form" : "Email"}</td>
@@ -50,7 +52,8 @@ function Jobs({ ds }: { ds: Dataset }) {
         <div className="mt-2 flex items-center justify-between border-t border-border pt-4 text-[13px]"><span className="text-muted-foreground">Total of the {Math.min(50, ds.jobs.length)} jobs shown</span><span className="tnum font-medium">{money(ds.jobs.slice(0, 50).reduce((s, j) => s + (val(j) ?? 0), 0))}</span></div>
       </Card>
       </div>
-      <LeadTimelineSheet lead={sel} now={ds.now} followup={settings.modules.followup.active} onClose={() => setSel(null)} />
+      <JobSheet job={selJob} onClose={() => setSelJob(null)} onLead={setSel} />
+      <LeadTimelineSheet lead={sel} followup={settings.modules.followup.active} onClose={() => setSel(null)} />
     </>
   );
 }

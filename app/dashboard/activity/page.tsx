@@ -42,7 +42,7 @@ function Activity({ ds }: { ds: Dataset }) {
             </li>); })}
         </ul>
       </Card>
-      <LeadTimelineSheet lead={sel} now={ds.now} followup={settings.modules.followup.active} onClose={() => setSel(null)} />
+      <LeadTimelineSheet lead={sel} followup={settings.modules.followup.active} onClose={() => setSel(null)} />
     </>
   );
 }

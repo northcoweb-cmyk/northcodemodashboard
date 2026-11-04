@@ -19,6 +19,7 @@ export default function Page() {
         <Row label="Owner"><Editable value={s.ownerName} onSave={(v) => update({ ownerName: v })} /></Row>
         <Row label="Business phone"><Editable value={s.phone} onSave={(v) => update({ phone: v })} /></Row>
         <Row label="Hours"><Editable value={s.hours} onSave={(v) => update({ hours: v })} /></Row>
+        <Row label="Monthly marketing spend"><Editable value={s.adSpend ? `$${s.adSpend.toLocaleString("en-US")}` : ""} placeholder="Add to see ROI" onSave={(v) => update({ adSpend: Number(v.replace(/[^0-9.]/g, "")) || 0 })} /></Row>
         <Row label="Service area"><Editable value={s.serviceArea} onSave={(v) => update({ serviceArea: v })} multiline /></Row>
       </Card>
       <Card className="mt-4 max-w-3xl">
