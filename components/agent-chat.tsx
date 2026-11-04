@@ -27,7 +27,7 @@ export function AgentChatProvider({ children }: { children: React.ReactNode }) {
   const [text, setText] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
 
-  const visibleAgents = AGENTS.filter((a) => (a.id === "followup" ? settings.modules.followup.active : a.id === "checkins" ? settings.modules.checkins.active : a.id === "crew" ? settings.modules.crew.active : true));
+  const visibleAgents = AGENTS;
   const nameOf = useCallback((id: AgentId) => settings.agentNames[id] || agentById(id).name, [settings.agentNames]);
 
   const send = useCallback(async (q: string, to: AgentId) => {

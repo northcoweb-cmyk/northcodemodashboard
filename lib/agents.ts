@@ -3,7 +3,7 @@ import { dispatches } from "./dispatch";
 import { ISSUES } from "./seed";
 import { delta, issueRows, money, outcomes, sources, summary, within } from "./stats";
 
-export type AgentId = "dispatch" | "receptionist" | "leads" | "followup" | "jobs" | "reports" | "checkins" | "crew";
+export type AgentId = "dispatch" | "receptionist" | "leads" | "jobs";
 
 export interface AgentDef {
   id: AgentId;
@@ -17,21 +17,18 @@ export interface AgentDef {
 
 export const AGENTS: AgentDef[] = [
   { id: "dispatch", name: "Concierge", role: "Routes your question", color: "#8a8a99", blurb: "Ask anything. Concierge hands it to the right agent.", prompts: ["How did we do this week?"], keys: /^$/ },
-  { id: "receptionist", name: "Receptionist", role: "Answers every call", color: "#7aa7ff", blurb: "Knows every call: what was said, how it was handled, what went wrong.", prompts: ["Why couldn't it hear some callers?", "How many calls came in after hours?", "What issues did you catch?"], keys: /busiest|peak|latest|call|phone|ring|answer|hear|audio|noise|transfer|spam|hang|after.?hours|night|weekend|voicemail|transcript|greeting|handled/i },
-  { id: "leads", name: "Lead Response", role: "Replies in minutes", color: "#4ade9a", blurb: "Tracks every new lead and how fast we responded.", prompts: ["How fast do we reply to new leads?", "Where are leads coming from?", "Who is still waiting on a reply?"], keys: /lead|inquir|form|source|speed|fast|quick|respond|reply time|waiting|new customer/i },
-  { id: "followup", name: "Follow-up", role: "Keeps leads warm", color: "#f2b84b", blurb: "Runs the email follow-up and watches opens and replies.", prompts: ["How are the follow-up emails doing?", "Who replied this month?"], keys: /follow.?up|email|open|replied|sequence|touch|nurture|drip/i },
-  { id: "jobs", name: "Jobs", role: "Tracks booked work", color: "#ff9a6b", blurb: "Booked jobs, what's scheduled and what's in the pipeline.", prompts: ["What jobs are scheduled?", "What's my pipeline worth?"], keys: /job|booked|schedul|pipeline|revenue|value|worth|work order|completed|crew/i },
-  { id: "reports", name: "Reports", role: "Weekly summary", color: "#c4a1ff", blurb: "Compares weeks and tells you what to fix next.", prompts: ["Give me this week's summary", "What should I fix next?"], keys: /report|summary|week|trend|compare|month|improv|fix next|overview|how did we do|performance/i },
-  { id: "crew", name: "Crew Dispatch", role: "Sends the right people", color: "#e0558f", blurb: "Matches booked jobs to your crew and sends the address and customer details.", prompts: ["Who's available right now?", "What did we dispatch today?", "Who's on a job?"], keys: /crew|team|dispatch|technician|tech\b|available|who.?s on|on a job|send out|assigned/i },
-  { id: "checkins", name: "Check-in Calls", role: "Calls to see if you're covered", color: "#5fd6e8", blurb: "Calls back people who asked for help and didn't book, to see if they still need it.", prompts: ["How did the check-in calls go?"], keys: /check.?in|covered|coverage|outbound|called back|call back/i },
+  { id: "receptionist", name: "Receptionist", role: "Calls, issues and fixes", color: "#7aa7ff", blurb: "Answers every call and knows what was said, how it was handled, and what went wrong.", prompts: ["Why couldn't it hear some callers?", "How many calls came in after hours?", "What issues did you catch?"], keys: /busiest|peak|latest|call|phone|ring|answer|hear|audio|noise|transfer|spam|hang|after.?hours|night|weekend|voicemail|transcript|greeting|handled|issue|problem/i },
+  { id: "leads", name: "Lead Response", role: "Leads, follow-up and forms", color: "#4ade9a", blurb: "Replies to every new lead in minutes, runs the follow-up emails, and watches your website forms.", prompts: ["How fast do we reply to new leads?", "How are the follow-up emails doing?", "Where are leads coming from?"], keys: /lead|inquir|form|source|speed|fast|quick|respond|reply|waiting|new customer|follow.?up|email|open|replied|sequence|touch|nurture|drip|check.?in|covered|outbound/i },
+  { id: "jobs", name: "Operations", role: "Jobs, crew and reports", color: "#ff9a6b", blurb: "Tracks booked jobs, dispatches your crew, and sums up the week.", prompts: ["What jobs are scheduled?", "Who's available right now?", "Give me this week's summary"], keys: /job|booked|schedul|pipeline|revenue|value|worth|work order|completed|crew|team|dispatch|technician|tech\b|available|who.?s on|on a job|assigned|report|summary|week|trend|compare|month|improv|fix next|overview|how did we do|performance/i },
 ];
 
 export const agentById = (id: AgentId) => AGENTS.find((a) => a.id === id)!;
 
 /** Pick the agent a question belongs to. Scores keyword hits; ties go to the more specific agent. */
 export function routeQuestion(q: string, enabled: { followup: boolean; checkins: boolean; crew?: boolean }): AgentId {
+  void enabled;
+  if (/check.?in|covered|outbound/i.test(q)) return "leads";
   const scores = AGENTS.filter((a) => a.id !== "dispatch").map((a) => {
-    if ((a.id === "followup" && !enabled.followup) || (a.id === "checkins" && !enabled.checkins) || (a.id === "crew" && enabled.crew === false)) return { id: a.id, s: 0 };
     const hits = q.match(new RegExp(a.keys.source, "gi"));
     return { id: a.id, s: hits ? hits.length : 0 };
   });
@@ -49,6 +46,9 @@ export function answer(ds: Dataset, agent: AgentId, q: string, settings?: Pick<S
   const w = summary(ds, 7);
   const rows = issueRows(ds);
   const name = settings?.businessName ?? "your business";
+  let sub: string = agent;
+  if (agent === "leads") sub = has(q, /check.?in|covered|outbound/i) ? "checkins" : has(q, /follow.?up|email|open|replied|sequence|touch|nurture|drip/i) ? "followup" : "leads";
+  if (agent === "jobs") sub = has(q, /crew|team|dispatch|technician|tech\b|available|who.?s on|on a job|assigned|busy/i) ? "crew" : has(q, /report|summary|week|trend|compare|month|improv|fix next|overview|how did we do|performance/i) ? "reports" : "jobs";
 
   if (agent === "receptionist") {
     if (has(q, /hear|audio|noise|quiet|unclear/i)) {
@@ -85,7 +85,7 @@ export function answer(ds: Dataset, agent: AgentId, q: string, settings?: Pick<S
     return { agent, text: `Last 30 days: ${s.answered} calls answered (${delta(s.answered, s.prevAnswered) >= 0 ? "+" : ""}${delta(s.answered, s.prevAnswered)}% vs the 30 days before), ${s.afterHoursPct}% after hours, average real call ${mins(s.avgDuration)}, ${s.transfers} transferred to you.`, facts: outcomes(ds, 30).filter((o) => o.n).map((o) => `${o.label}: ${o.n}`) };
   }
 
-  if (agent === "leads") {
+  if (sub === "leads") {
     if (has(q, /source|where/i)) return { agent, text: `Leads in the last 30 days: ${sources(ds, 30).map((x) => `${x.n} from ${x.label.toLowerCase()}`).join(", ")}.` };
     if (has(q, /waiting|new|unanswered/i)) {
       const open = ds.leads.filter((l) => l.status === "new").slice(0, 5);
@@ -99,7 +99,7 @@ export function answer(ds: Dataset, agent: AgentId, q: string, settings?: Pick<S
     return { agent, text: `${s.leadCount} leads in the last 30 days (${delta(s.leadCount, s.prevLeads) >= 0 ? "+" : ""}${delta(s.leadCount, s.prevLeads)}% vs the month before). Average time to first reply: ${s.avgFirstReply} minutes. Website form leads: ${s.formLeads}.` };
   }
 
-  if (agent === "followup") {
+  if (sub === "followup") {
     if (has(q, /replied|who/i)) {
       const who = s.leads.filter((l) => l.touches.some((t) => t.replied)).slice(0, 6);
       return { agent, text: who.length ? `Replied to a follow-up recently: ${who.map((l) => l.name).join(", ")}. Their sequences stop once they reply.` : "No replies to follow-ups in the last 30 days." };
@@ -107,7 +107,7 @@ export function answer(ds: Dataset, agent: AgentId, q: string, settings?: Pick<S
     return { agent, text: `${s.sent} follow-up emails sent in the last 30 days. ${s.openRate}% opened, ${s.replyRate}% replied. The sequence is an instant reply, a next-day check-in and a day-4 follow-up. It stops when the lead replies or books.` };
   }
 
-  if (agent === "jobs") {
+  if (sub === "jobs") {
     const sched = ds.jobs.filter((j) => j.status === "scheduled");
     if (has(q, /schedul/i)) return { agent, text: sched.length ? `${sched.length} jobs scheduled: ${sched.slice(0, 5).map((j) => `${j.customer} (${j.service.toLowerCase()})`).join(", ")}.` : "No jobs are waiting to be scheduled." };
     if (has(q, /biggest|largest|top|highest/i)) { const j = [...ds.jobs].filter((x) => x.value != null).sort((a, b) => (b.value ?? 0) - (a.value ?? 0))[0]; if (j) return { agent, text: `The biggest job you've valued is ${j.customer}, ${j.service.toLowerCase()}, at ${money(j.value!)}.` }; }
@@ -115,7 +115,7 @@ export function answer(ds: Dataset, agent: AgentId, q: string, settings?: Pick<S
     return { agent, text: `${s.jobsBooked} jobs booked in the last 30 days (${delta(s.jobsBooked, s.prevJobs) >= 0 ? "+" : ""}${delta(s.jobsBooked, s.prevJobs)}% vs the month before). ${s.valued} have a value entered, totaling ${money(s.pipelineValue)}. Job values are the ones you enter, nothing is estimated.` };
   }
 
-  if (agent === "reports") {
+  if (sub === "reports") {
     if (has(q, /fix next|improve|should/i)) {
       const next = [...rows].sort((a, b) => b.rateAfter - a.rateAfter)[0];
       return { agent, text: `The issue still happening most is "${next.title.toLowerCase()}" at ${next.rateAfter}% of calls since its fix. ${next.fix.change}` };
@@ -123,7 +123,7 @@ export function answer(ds: Dataset, agent: AgentId, q: string, settings?: Pick<S
     return { agent, text: `This week: ${w.answered} calls, ${w.leadCount} leads, ${w.jobsBooked} jobs booked, first reply in ${w.avgFirstReply} min. ${w.afterHours} calls came after hours. ${w.issues} calls needed attention and ${w.recovered} were recovered.` };
   }
 
-  if (agent === "crew") {
+  if (sub === "crew") {
     const crew = settings?.crew ?? [];
     const by = (st: string) => crew.filter((c) => c.status === st);
     const ds2 = dispatches(ds, crew, name, 40);
@@ -136,7 +136,7 @@ export function answer(ds: Dataset, agent: AgentId, q: string, settings?: Pick<S
     return { agent, text: `${by("available").length} available: ${by("available").map((c) => c.name).join(", ") || "none"}. ${by("on_job").length} on a job, ${by("off").length} off today. New bookings go to whoever matches the job and isn't off.`, facts: crew.map((c) => `${c.name}: ${c.status.replace("_", " ")}`) };
   }
 
-  if (agent === "checkins") {
+  if (sub === "checkins") {
     const cs = ds.checkins.filter((c) => within(ds, 30)(c.at));
     const c = (r: string) => cs.filter((x) => x.result === r).length;
     return { agent, text: `${cs.length} check-in calls in the last 30 days to people who asked for help and hadn't booked. ${c("booked")} booked, ${c("still_needs_help")} still need help, ${c("got_help_elsewhere")} found someone else, ${c("no_answer") + c("voicemail_left")} didn't pick up.` };

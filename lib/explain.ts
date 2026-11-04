@@ -49,7 +49,7 @@ export const EXPLAIN: Record<string, Explain> = {
     ],
   },
   followup: {
-    title: "Follow-up performance", agent: "followup", source: "Email delivery events (sent, opened, replied)",
+    title: "Follow-up performance", agent: "leads", source: "Email delivery events (sent, opened, replied)",
     steps: [
       { label: "Instant reply", detail: "Sent within minutes of the lead arriving." },
       { label: "Next-day check-in", detail: "Sent the next morning if the lead hasn't replied or booked." },
