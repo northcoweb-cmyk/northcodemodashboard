@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { ArrowUp, BarChart3, HardHat, Moon, Sun, FileInput, Hammer, LayoutDashboard, LogOut, MailCheck, Menu, PhoneCall, PhoneOutgoing, Settings as Cog, Users } from "lucide-react";
 import { SidebarNav, type NavGroupData } from "@/components/ui/dashboard-sidebar";
-import { AIMascot } from "@/components/ui/ask-ai";
+import { AgentIcon } from "@/components/agent-icon";
+import { agentById } from "@/lib/agents";
 import { Editable } from "@/components/ui/editable";
 import { AgentChatProvider, useChat } from "@/components/agent-chat";
 import { ExplainProvider } from "@/components/explain-provider";
@@ -59,7 +60,7 @@ function Shell({ children }: { children: React.ReactNode }) {
         <main className="no-scrollbar flex-1 overflow-y-auto px-4 pb-32 pt-6 sm:px-6 lg:px-8"><div className="mx-auto w-full max-w-[1180px]">{children}</div></main>
         <form className="pointer-events-none fixed inset-x-0 bottom-4 z-30 flex justify-center px-4 lg:left-[260px]" onSubmit={(e) => { e.preventDefault(); if (q.trim()) { chat.ask(q); setQ(""); } }}>
           <div className="pointer-events-auto flex w-full max-w-[560px] items-center gap-2.5 rounded-full border border-foreground/[0.12] bg-background/80 py-1.5 pl-2 pr-2 shadow-2xl backdrop-blur-xl">
-            <button type="button" onClick={() => chat.openAgent("dispatch")} className="shrink-0" aria-label="Open agents"><AIMascot size="compact" /></button>
+            <button type="button" onClick={() => chat.openAgent("dispatch")} className="shrink-0" aria-label="Open agents"><AgentIcon color={agentById("dispatch").color} size={34} /></button>
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Ask your agents anything…" className="min-w-0 flex-1 bg-transparent text-[13px] outline-none placeholder:text-muted-foreground/70" />
             <button disabled={!q.trim()} className={cn("flex size-8 items-center justify-center rounded-full bg-foreground text-background transition", !q.trim() && "opacity-30")} aria-label="Send"><ArrowUp className="size-4" strokeWidth={2} /></button>
           </div>

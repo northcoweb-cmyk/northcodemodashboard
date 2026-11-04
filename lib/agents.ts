@@ -16,7 +16,7 @@ export interface AgentDef {
 }
 
 export const AGENTS: AgentDef[] = [
-  { id: "dispatch", name: "Concierge", role: "Routes your question", color: "#6b6b75", blurb: "Ask anything. Concierge hands it to the right agent.", prompts: ["How did we do this week?"], keys: /^$/ },
+  { id: "dispatch", name: "Concierge", role: "Routes your question", color: "#8a8a99", blurb: "Ask anything. Concierge hands it to the right agent.", prompts: ["How did we do this week?"], keys: /^$/ },
   { id: "receptionist", name: "Receptionist", role: "Answers every call", color: "#7aa7ff", blurb: "Knows every call: what was said, how it was handled, what went wrong.", prompts: ["Why couldn't it hear some callers?", "How many calls came in after hours?", "What issues did you catch?"], keys: /busiest|peak|latest|call|phone|ring|answer|hear|audio|noise|transfer|spam|hang|after.?hours|night|weekend|voicemail|transcript|greeting|handled/i },
   { id: "leads", name: "Lead Response", role: "Replies in minutes", color: "#4ade9a", blurb: "Tracks every new lead and how fast we responded.", prompts: ["How fast do we reply to new leads?", "Where are leads coming from?", "Who is still waiting on a reply?"], keys: /lead|inquir|form|source|speed|fast|quick|respond|reply time|waiting|new customer/i },
   { id: "followup", name: "Follow-up", role: "Keeps leads warm", color: "#f2b84b", blurb: "Runs the email follow-up and watches opens and replies.", prompts: ["How are the follow-up emails doing?", "Who replied this month?"], keys: /follow.?up|email|open|replied|sequence|touch|nurture|drip/i },
