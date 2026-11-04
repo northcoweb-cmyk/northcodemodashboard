@@ -1,8 +1,9 @@
-import type { Dataset, Settings } from "./types";
+import type { CrewMember, Dataset, Settings } from "./types";
+import { dispatches } from "./dispatch";
 import { ISSUES } from "./seed";
 import { delta, issueRows, money, outcomes, sources, summary, within } from "./stats";
 
-export type AgentId = "dispatch" | "receptionist" | "leads" | "followup" | "jobs" | "reports" | "checkins";
+export type AgentId = "dispatch" | "receptionist" | "leads" | "followup" | "jobs" | "reports" | "checkins" | "crew";
 
 export interface AgentDef {
   id: AgentId;
@@ -15,21 +16,22 @@ export interface AgentDef {
 }
 
 export const AGENTS: AgentDef[] = [
-  { id: "dispatch", name: "Dispatch", role: "Routes your question", color: "#f4f4f5", blurb: "Ask anything. Dispatch hands it to the right agent.", prompts: ["How did we do this week?"], keys: /^$/ },
+  { id: "dispatch", name: "Concierge", role: "Routes your question", color: "#6b6b75", blurb: "Ask anything. Concierge hands it to the right agent.", prompts: ["How did we do this week?"], keys: /^$/ },
   { id: "receptionist", name: "Receptionist", role: "Answers every call", color: "#7aa7ff", blurb: "Knows every call: what was said, how it was handled, what went wrong.", prompts: ["Why couldn't it hear some callers?", "How many calls came in after hours?", "What issues did you catch?"], keys: /busiest|peak|latest|call|phone|ring|answer|hear|audio|noise|transfer|spam|hang|after.?hours|night|weekend|voicemail|transcript|greeting|handled/i },
   { id: "leads", name: "Lead Response", role: "Replies in minutes", color: "#4ade9a", blurb: "Tracks every new lead and how fast we responded.", prompts: ["How fast do we reply to new leads?", "Where are leads coming from?", "Who is still waiting on a reply?"], keys: /lead|inquir|form|source|speed|fast|quick|respond|reply time|waiting|new customer/i },
   { id: "followup", name: "Follow-up", role: "Keeps leads warm", color: "#f2b84b", blurb: "Runs the email follow-up and watches opens and replies.", prompts: ["How are the follow-up emails doing?", "Who replied this month?"], keys: /follow.?up|email|open|replied|sequence|touch|nurture|drip/i },
   { id: "jobs", name: "Jobs", role: "Tracks booked work", color: "#ff9a6b", blurb: "Booked jobs, what's scheduled and what's in the pipeline.", prompts: ["What jobs are scheduled?", "What's my pipeline worth?"], keys: /job|booked|schedul|pipeline|revenue|value|worth|work order|completed|crew/i },
   { id: "reports", name: "Reports", role: "Weekly summary", color: "#c4a1ff", blurb: "Compares weeks and tells you what to fix next.", prompts: ["Give me this week's summary", "What should I fix next?"], keys: /report|summary|week|trend|compare|month|improv|fix next|overview|how did we do|performance/i },
+  { id: "crew", name: "Crew Dispatch", role: "Sends the right people", color: "#e0558f", blurb: "Matches booked jobs to your crew and sends the address and customer details.", prompts: ["Who's available right now?", "What did we dispatch today?", "Who's on a job?"], keys: /crew|team|dispatch|technician|tech\b|available|who.?s on|on a job|send out|assigned/i },
   { id: "checkins", name: "Check-in Calls", role: "Calls to see if you're covered", color: "#5fd6e8", blurb: "Calls back people who asked for help and didn't book, to see if they still need it.", prompts: ["How did the check-in calls go?"], keys: /check.?in|covered|coverage|outbound|called back|call back/i },
 ];
 
 export const agentById = (id: AgentId) => AGENTS.find((a) => a.id === id)!;
 
 /** Pick the agent a question belongs to. Scores keyword hits; ties go to the more specific agent. */
-export function routeQuestion(q: string, enabled: { followup: boolean; checkins: boolean }): AgentId {
+export function routeQuestion(q: string, enabled: { followup: boolean; checkins: boolean; crew?: boolean }): AgentId {
   const scores = AGENTS.filter((a) => a.id !== "dispatch").map((a) => {
-    if ((a.id === "followup" && !enabled.followup) || (a.id === "checkins" && !enabled.checkins)) return { id: a.id, s: 0 };
+    if ((a.id === "followup" && !enabled.followup) || (a.id === "checkins" && !enabled.checkins) || (a.id === "crew" && enabled.crew === false)) return { id: a.id, s: 0 };
     const hits = q.match(new RegExp(a.keys.source, "gi"));
     return { id: a.id, s: hits ? hits.length : 0 };
   });
@@ -42,7 +44,7 @@ export interface Reply { agent: AgentId; text: string; facts?: string[]; usedMod
 const mins = (s: number) => `${Math.floor(s / 60)}m ${s % 60}s`;
 const has = (q: string, re: RegExp) => re.test(q);
 
-export function answer(ds: Dataset, agent: AgentId, q: string, settings?: Pick<Settings, "businessName">): Reply {
+export function answer(ds: Dataset, agent: AgentId, q: string, settings?: Pick<Settings, "businessName"> & { crew?: CrewMember[] }): Reply {
   const s = summary(ds, 30);
   const w = summary(ds, 7);
   const rows = issueRows(ds);
@@ -119,6 +121,19 @@ export function answer(ds: Dataset, agent: AgentId, q: string, settings?: Pick<S
       return { agent, text: `The issue still happening most is "${next.title.toLowerCase()}" at ${next.rateAfter}% of calls since its fix. ${next.fix.change}` };
     }
     return { agent, text: `This week: ${w.answered} calls, ${w.leadCount} leads, ${w.jobsBooked} jobs booked, first reply in ${w.avgFirstReply} min. ${w.afterHours} calls came after hours. ${w.issues} calls needed attention and ${w.recovered} were recovered.` };
+  }
+
+  if (agent === "crew") {
+    const crew = settings?.crew ?? [];
+    const by = (st: string) => crew.filter((c) => c.status === st);
+    const ds2 = dispatches(ds, crew, name, 40);
+    if (has(q, /dispatch|sent|today|send/i)) {
+      const t = ds2.filter((d) => ds.now - d.sentAt < 86400000);
+      const list = (t.length ? t : ds2.slice(0, 3)).slice(0, 4);
+      return { agent, text: `${t.length ? `${t.length} jobs dispatched in the last 24 hours` : "Nothing dispatched in the last 24 hours. The latest ones"}: ${list.map((d) => `${d.job.service.toLowerCase()} at ${d.job.address.split(",")[0]} to ${d.crew.map((c) => c.name.split(" ")[0]).join(" and ") || "no one"}`).join("; ")}. Each message carries the address, customer name and phone.` };
+    }
+    if (has(q, /on a job|busy|working/i)) return { agent, text: by("on_job").length ? `${by("on_job").map((c) => `${c.name} (${c.role.toLowerCase()})`).join(", ")} ${by("on_job").length > 1 ? "are" : "is"} on a job right now.` : "Nobody is on a job right now." };
+    return { agent, text: `${by("available").length} available: ${by("available").map((c) => c.name).join(", ") || "none"}. ${by("on_job").length} on a job, ${by("off").length} off today. New bookings go to whoever matches the job and isn't off.`, facts: crew.map((c) => `${c.name}: ${c.status.replace("_", " ")}`) };
   }
 
   if (agent === "checkins") {

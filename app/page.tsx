@@ -42,7 +42,7 @@ export default function Welcome() {
 
         <div className={`rise mt-9 flex gap-3 ${bad ? "shake" : ""}`} style={{ animationDelay: "180ms" }} aria-label="PIN entry">
           {Array.from({ length: LEN }).map((_, i) => (
-            <span key={i} className={`h-3.5 w-3.5 rounded-full border transition-all duration-200 ${i < pin.length ? (bad ? "border-bad bg-bad" : "scale-110 border-foreground bg-foreground") : "border-white/25"}`} />
+            <span key={i} className={`h-3.5 w-3.5 rounded-full border transition-all duration-200 ${i < pin.length ? (bad ? "border-bad bg-bad" : "scale-110 border-foreground bg-foreground") : "border-foreground/25"}`} />
           ))}
         </div>
 

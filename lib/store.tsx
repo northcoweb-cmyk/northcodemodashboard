@@ -2,8 +2,11 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { Dataset, Settings } from "./types";
+import { DEFAULT_CREW } from "./dispatch";
 
 export const DEFAULTS: Settings = {
+  crew: DEFAULT_CREW,
+  autoDispatch: true,
   businessName: "Harborline Restoration",
   plan: "Growth",
   ownerName: "Mike Harlan",
@@ -17,6 +20,7 @@ export const DEFAULTS: Settings = {
     followup: { active: true, sidebar: true },
     forms: { active: true, sidebar: true },
     checkins: { active: false, sidebar: false },
+    crew: { active: true, sidebar: true },
   },
   bubbles: true,
 };

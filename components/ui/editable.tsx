@@ -19,7 +19,7 @@ export function Editable({ value, onSave, className, placeholder = "Click to add
   const common = {
     ref, value: draft, onChange: (e: React.ChangeEvent<HTMLInputElement & HTMLTextAreaElement>) => setDraft(e.target.value), onBlur: commit, onClick: (e: React.MouseEvent) => e.stopPropagation(),
     onKeyDown: (e: React.KeyboardEvent) => { if (e.key === "Enter" && !(multiline && e.shiftKey)) { e.preventDefault(); commit(); } if (e.key === "Escape") { setDraft(value); setEditing(false); } },
-    className: cn("w-full rounded-sm bg-white/[0.06] px-1 -mx-1 outline-none ring-1 ring-white/20", className),
+    className: cn("w-full rounded-sm bg-foreground/[0.06] px-1 -mx-1 outline-none ring-1 ring-foreground/20", className),
   };
   return multiline ? <textarea rows={2} {...common} /> : <input {...common} />;
 }

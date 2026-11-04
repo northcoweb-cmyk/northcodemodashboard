@@ -26,7 +26,7 @@ function FollowUps({ ds }: { ds: Dataset }) {
             <tr key={l.id}>
               <td className="whitespace-nowrap font-medium">{l.name}</td>
               <td className="tnum whitespace-nowrap text-muted-foreground">{dayLabel(l.at)}</td>
-              {[0, 1, 2].map((i) => { const t = l.touches[i]; return <td key={i}>{t ? <span className={cn("inline-flex items-center gap-1.5 text-xs", t.replied ? "text-good" : t.opened ? "text-foreground" : "text-muted-foreground")}><i className={cn("size-2 rounded-full", t.replied ? "bg-good" : t.opened ? "bg-foreground" : "bg-white/25")} />{t.replied ? "Replied" : t.opened ? "Opened" : "Sent"}</span> : <span className="text-xs text-muted-foreground/40">{l.status === "booked" || l.status === "replied" ? "Stopped" : "Scheduled"}</span>}</td>; })}
+              {[0, 1, 2].map((i) => { const t = l.touches[i]; return <td key={i}>{t ? <span className={cn("inline-flex items-center gap-1.5 text-xs", t.replied ? "text-good" : t.opened ? "text-foreground" : "text-muted-foreground")}><i className={cn("size-2 rounded-full", t.replied ? "bg-good" : t.opened ? "bg-foreground" : "bg-foreground/25")} />{t.replied ? "Replied" : t.opened ? "Opened" : "Sent"}</span> : <span className="text-xs text-muted-foreground/40">{l.status === "booked" || l.status === "replied" ? "Stopped" : "Scheduled"}</span>}</td>; })}
               <td className="whitespace-nowrap text-xs capitalize text-muted-foreground">{l.status}</td>
             </tr>
           ))}

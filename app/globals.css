@@ -3,6 +3,27 @@
 
 :root {
   --radius: 0.75rem;
+  --background: #f6f6f7;
+  --foreground: #0b0b0d;
+  --card: #ffffff;
+  --card-foreground: #0b0b0d;
+  --popover: #ffffff;
+  --popover-foreground: #0b0b0d;
+  --primary: #0b0b0d;
+  --primary-foreground: #fafafa;
+  --secondary: #ededf0;
+  --muted: #efeff1;
+  --muted-foreground: #6a6a73;
+  --border: rgba(11, 11, 13, 0.09);
+  --input: rgba(11, 11, 13, 0.12);
+  --ring: rgba(11, 11, 13, 0.3);
+  --good: #12935f;
+  --warn: #b9770e;
+  --bad: #d23f3f;
+  --blue: #2a62e8;
+  --grid: rgba(11, 11, 13, 0.06);
+}
+:root[data-theme="dark"] {
   --background: #060607;
   --foreground: #f4f4f5;
   --card: #0d0d0f;
@@ -21,6 +42,7 @@
   --warn: #f2b84b;
   --bad: #ff7373;
   --blue: #7aa7ff;
+  --grid: rgba(255, 255, 255, 0.045);
 }
 
 @theme inline {
@@ -42,11 +64,14 @@
   --color-warn: var(--warn);
   --color-bad: var(--bad);
   --color-blue: var(--blue);
+  --color-success: var(--good);
+  --color-error: var(--bad);
   --font-sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
-html { color-scheme: dark; }
+html { color-scheme: light; }
+html[data-theme="dark"] { color-scheme: dark; }
 body {
   background: var(--background);
   color: var(--foreground);
@@ -54,12 +79,12 @@ body {
   -webkit-font-smoothing: antialiased;
   font-feature-settings: "ss01", "cv11";
 }
-::selection { background: rgba(255,255,255,.22); }
+::selection { background: color-mix(in srgb, var(--foreground) 20%, transparent); }
 .tnum { font-variant-numeric: tabular-nums; }
 .no-scrollbar { scrollbar-width: none; }
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .grid-fade {
-  background-image: linear-gradient(rgba(255,255,255,.045) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.045) 1px, transparent 1px);
+  background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
   background-size: 56px 56px;
   mask-image: radial-gradient(ellipse 60% 55% at 50% 40%, #000 30%, transparent 75%);
 }

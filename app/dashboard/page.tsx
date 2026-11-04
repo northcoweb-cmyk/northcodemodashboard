@@ -10,6 +10,7 @@ import { useSettings } from "@/lib/store";
 import { byHour, delta, issueRows, money, outcomes, perDay, sources, summary } from "@/lib/stats";
 import { dayLabel } from "@/components/kit";
 import { cn } from "@/lib/utils";
+import { JobsTaskList } from "@/components/jobs-tasks";
 import type { Dataset } from "@/lib/types";
 
 function Overview({ ds }: { ds: Dataset }) {
@@ -69,6 +70,22 @@ function Overview({ ds }: { ds: Dataset }) {
           </ol>
         </Card>
         <Card explain="sources"><CardHead title="Where leads come from" sub="Last 30 days" /><BarList rows={sources(ds, 30).filter((x) => x.key !== "form" || m.forms.active).map((x) => ({ label: x.label, n: x.n }))} color="#4ade9a" /></Card>
+      </div>
+
+      <div className="mt-4 grid gap-4 lg:grid-cols-3">
+        <div className="lg:col-span-1"><JobsTaskList ds={ds} title="Booked jobs" count={5} className="h-full" /></div>
+        <Card className="lg:col-span-2" explain="jobs">
+          <CardHead title="Crew right now" sub="Who gets dispatched when a job is booked" />
+          <ul className="grid gap-3 sm:grid-cols-2">
+            {settings.crew.map((c) => (
+              <li key={c.id} className="flex items-center gap-3 rounded-xl border border-border p-3">
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white" style={{ background: c.color }}>{c.name.split(" ").map((p) => p[0]).join("").slice(0, 2)}</span>
+                <span className="min-w-0 flex-1"><span className="block truncate text-[13px] font-medium">{c.name}</span><span className="block truncate text-xs text-muted-foreground">{c.role}</span></span>
+                <i className={cn("size-2 shrink-0 rounded-full", c.status === "available" ? "bg-good" : c.status === "on_job" ? "bg-warn" : "bg-foreground/25")} title={c.status} />
+              </li>
+            ))}
+          </ul>
+        </Card>
       </div>
 
       <Card className="mt-4" explain="issues">

@@ -13,7 +13,7 @@ export function Card({ className, children, explain, onClick }: { className?: st
       tabIndex={clickable ? 0 : undefined}
       onClick={() => (onClick ? onClick() : explain && ex.show(explain))}
       onKeyDown={(e) => { if (clickable && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); onClick ? onClick() : explain && ex.show(explain); } }}
-      className={cn("rise rounded-2xl border border-border bg-card p-5 text-left", clickable && "cursor-pointer transition hover:border-white/[0.16] hover:bg-[#101012] focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring", className)}
+      className={cn("rise rounded-2xl border border-border bg-card p-5 text-left", clickable && "cursor-pointer transition hover:border-foreground/[0.16] hover:bg-muted focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring", className)}
     >{children}</section>
   );
 }
@@ -58,7 +58,7 @@ export function PageTitle({ title, sub, right }: { title: string; sub?: string; 
   );
 }
 
-const TONES: Record<string, string> = { good: "bg-good/10 text-good", warn: "bg-warn/10 text-warn", bad: "bg-bad/10 text-bad", blue: "bg-blue/10 text-blue", mute: "bg-white/[0.06] text-muted-foreground" };
+const TONES: Record<string, string> = { good: "bg-good/10 text-good", warn: "bg-warn/10 text-warn", bad: "bg-bad/10 text-bad", blue: "bg-blue/10 text-blue", mute: "bg-foreground/[0.06] text-muted-foreground" };
 export function Pill({ tone = "mute", children }: { tone?: keyof typeof TONES | string; children: React.ReactNode }) {
   return <span className={cn("inline-flex items-center whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium", TONES[tone])}>{children}</span>;
 }

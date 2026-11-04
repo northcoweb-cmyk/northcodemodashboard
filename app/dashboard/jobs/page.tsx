@@ -6,6 +6,7 @@ import { Gate } from "@/components/gate";
 import { Card, CardHead, PageTitle, Pill, Stat, Table, when } from "@/components/kit";
 import { Editable } from "@/components/ui/editable";
 import { money } from "@/lib/stats";
+import { JobsTaskList } from "@/components/jobs-tasks";
 import type { Dataset } from "@/lib/types";
 
 const ST: Record<string, [string, string]> = { scheduled: ["blue", "Scheduled"], in_progress: ["warn", "In progress"], completed: ["good", "Completed"] };
@@ -25,7 +26,9 @@ function Jobs({ ds }: { ds: Dataset }) {
         <Stat icon={CalendarClock} label="Scheduled now" value={ds.jobs.filter((j) => j.status === "scheduled").length} explain="jobs" />
         <Stat icon={DollarSign} label="Total job value" value={money(total)} hint="from values you entered" explain="jobs" />
       </div>
-      <Card className="mt-4">
+      <div className="mt-4 grid gap-4 lg:grid-cols-3">
+      <JobsTaskList ds={ds} title="Booked jobs" count={7} className="h-fit lg:col-span-1" />
+      <Card className="lg:col-span-2">
         <CardHead title="All jobs" sub="Click a value to change it" />
         <Table head={["Customer", "Service", "Source", "Status", "Booked", "Value"]}>
           {ds.jobs.slice(0, 50).map((j) => (
@@ -40,6 +43,7 @@ function Jobs({ ds }: { ds: Dataset }) {
           ))}
         </Table>
       </Card>
+      </div>
     </>
   );
 }

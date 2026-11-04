@@ -35,6 +35,7 @@ export interface Call {
   phone: string;
   afterHours: boolean;
   service: string;
+  address: string;
   outcome: Outcome;
   issue?: IssueKey;
   recovered?: boolean;
@@ -63,6 +64,7 @@ export interface Lead {
   phone: string;
   email: string;
   service: string;
+  address: string;
   status: LeadStatus;
   firstReplyMin: number;
   callId?: string;
@@ -74,6 +76,8 @@ export interface Job {
   leadId: string;
   customer: string;
   service: string;
+  address: string;
+  phone: string;
   value: number | null;
   status: "scheduled" | "in_progress" | "completed";
   at: number;
@@ -105,7 +109,19 @@ export interface Dataset {
   fixes: Fix[];
 }
 
+export interface CrewMember {
+  id: string;
+  name: string;
+  role: string;
+  phone: string;
+  skills: string[];
+  color: string;
+  status: "available" | "on_job" | "off";
+}
+
 export interface Settings {
+  crew: CrewMember[];
+  autoDispatch: boolean;
   businessName: string;
   plan: string;
   ownerName: string;
@@ -115,6 +131,6 @@ export interface Settings {
   serviceArea: string;
   greeting: string;
   agentNames: Record<string, string>;
-  modules: Record<"followup" | "forms" | "checkins", { active: boolean; sidebar: boolean }>;
+  modules: Record<"followup" | "forms" | "checkins" | "crew", { active: boolean; sidebar: boolean }>;
   bubbles: boolean;
 }

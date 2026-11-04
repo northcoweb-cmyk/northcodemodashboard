@@ -27,7 +27,7 @@ export function AgentChatProvider({ children }: { children: React.ReactNode }) {
   const [text, setText] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
 
-  const visibleAgents = AGENTS.filter((a) => (a.id === "followup" ? settings.modules.followup.active : a.id === "checkins" ? settings.modules.checkins.active : true));
+  const visibleAgents = AGENTS.filter((a) => (a.id === "followup" ? settings.modules.followup.active : a.id === "checkins" ? settings.modules.checkins.active : a.id === "crew" ? settings.modules.crew.active : true));
   const nameOf = useCallback((id: AgentId) => settings.agentNames[id] || agentById(id).name, [settings.agentNames]);
 
   const send = useCallback(async (q: string, to: AgentId) => {
@@ -35,13 +35,13 @@ export function AgentChatProvider({ children }: { children: React.ReactNode }) {
     setThreads((t) => ({ ...t, [to]: [...(t[to] || []), { role: "user", text: question }] }));
     setBusy(true);
     try {
-      const res = await fetch("/api/agent", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ q: question, agent: to === "dispatch" ? "auto" : to, businessName: settings.businessName, followup: settings.modules.followup.active, checkins: settings.modules.checkins.active }) });
+      const res = await fetch("/api/agent", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ q: question, agent: to === "dispatch" ? "auto" : to, businessName: settings.businessName, followup: settings.modules.followup.active, checkins: settings.modules.checkins.active, crewOn: settings.modules.crew.active, crew: settings.crew }) });
       const j = await res.json();
       setThreads((t) => ({ ...t, [to]: [...(t[to] || []), { role: "agent", text: j.text || "I couldn't answer that.", agent: j.agent as AgentId, routed: to === "dispatch" && j.agent !== "dispatch", facts: j.facts }] }));
     } catch {
       setThreads((t) => ({ ...t, [to]: [...(t[to] || []), { role: "agent", text: "Something went wrong reaching the agents. Try again in a moment.", agent: to }] }));
     } finally { setBusy(false); }
-  }, [settings.businessName, settings.modules.followup.active, settings.modules.checkins.active]);
+  }, [settings.businessName, settings.modules.followup.active, settings.modules.checkins.active, settings.modules.crew.active, settings.crew]);
 
   const value: Chat = {
     visibleAgents, nameOf,
@@ -60,7 +60,7 @@ export function AgentChatProvider({ children }: { children: React.ReactNode }) {
         <div className="-mx-5 -my-4 flex h-full min-h-[70dvh] flex-col">
           <div className="no-scrollbar flex gap-1.5 overflow-x-auto border-b border-border px-5 py-2.5">
             {visibleAgents.map((a) => (
-              <button key={a.id} onClick={() => setActive(a.id)} className={cn("flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition", a.id === active ? "border-white/25 bg-white/[0.08] text-foreground" : "border-transparent text-muted-foreground hover:text-foreground")}>
+              <button key={a.id} onClick={() => setActive(a.id)} className={cn("flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs transition", a.id === active ? "border-foreground/25 bg-foreground/[0.08] text-foreground" : "border-transparent text-muted-foreground hover:text-foreground")}>
                 <i className="size-2 rounded-full" style={{ background: a.color }} />{nameOf(a.id)}
               </button>
             ))}
@@ -72,7 +72,7 @@ export function AgentChatProvider({ children }: { children: React.ReactNode }) {
             </div>
             {!msgs.length && (
               <div className="flex flex-wrap justify-center gap-2">
-                {def.prompts.map((p) => <button key={p} onClick={() => send(p, active)} className="rounded-full border border-border px-3 py-1.5 text-xs text-muted-foreground transition hover:border-white/25 hover:text-foreground">{p}</button>)}
+                {def.prompts.map((p) => <button key={p} onClick={() => send(p, active)} className="rounded-full border border-border px-3 py-1.5 text-xs text-muted-foreground transition hover:border-foreground/25 hover:text-foreground">{p}</button>)}
               </div>
             )}
             {msgs.map((m, i) => m.role === "user" ? (
@@ -90,7 +90,7 @@ export function AgentChatProvider({ children }: { children: React.ReactNode }) {
             <div ref={endRef} />
           </div>
           <form className="border-t border-border p-3" onSubmit={(e) => { e.preventDefault(); const q = text; setText(""); void send(q, active); }}>
-            <div className="flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-1.5 focus-within:border-white/25">
+            <div className="flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-1.5 focus-within:border-foreground/25">
               <input value={text} onChange={(e) => setText(e.target.value)} placeholder={active === "dispatch" ? "Ask anything. I'll pick the right agent." : `Ask ${nameOf(active)}…`} className="min-w-0 flex-1 bg-transparent py-1.5 text-[13px] outline-none placeholder:text-muted-foreground/60" />
               <button disabled={!text.trim() || busy} className="flex size-7 items-center justify-center rounded-lg bg-foreground text-background transition disabled:opacity-30" aria-label="Send"><ArrowUp className="size-4" strokeWidth={2} /></button>
             </div>

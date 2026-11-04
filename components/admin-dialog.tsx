@@ -8,15 +8,16 @@ import { DEFAULTS, useSettings } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 function Toggle({ on, onChange, label }: { on: boolean; onChange: (v: boolean) => void; label: string }) {
-  return <button role="switch" aria-checked={on} aria-label={label} onClick={() => onChange(!on)} className={cn("relative h-5 w-9 shrink-0 rounded-full transition", on ? "bg-foreground" : "bg-white/15")}><i className={cn("absolute top-0.5 size-4 rounded-full transition-all", on ? "left-[18px] bg-background" : "left-0.5 bg-white/70")} /></button>;
+  return <button role="switch" aria-checked={on} aria-label={label} onClick={() => onChange(!on)} className={cn("relative h-5 w-9 shrink-0 rounded-full transition", on ? "bg-foreground" : "bg-foreground/15")}><i className={cn("absolute top-0.5 size-4 rounded-full transition-all", on ? "left-[18px] bg-background" : "left-0.5 bg-foreground/70")} /></button>;
 }
 const Field = ({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) => (
   <label className="flex flex-col gap-1.5 text-xs text-muted-foreground">{label}
-    <input defaultValue={value} onBlur={(e) => e.target.value.trim() && onChange(e.target.value.trim())} className="rounded-lg border border-border bg-background px-3 py-2 text-[13px] text-foreground outline-none focus:border-white/25" />
+    <input defaultValue={value} onBlur={(e) => e.target.value.trim() && onChange(e.target.value.trim())} className="rounded-lg border border-border bg-background px-3 py-2 text-[13px] text-foreground outline-none focus:border-foreground/25" />
   </label>
 );
 
 const MODULES = [
+  { k: "crew" as const, title: "Crew dispatch", sub: "Sends the right crew the address and customer details when a job is booked." },
   { k: "followup" as const, title: "Follow-up emails", sub: "Instant reply, next-day check-in, day-4 follow-up." },
   { k: "forms" as const, title: "Website form speed-to-lead", sub: "Connects the site's contact forms and replies in minutes." },
   { k: "checkins" as const, title: "Check-in calls", sub: "Outbound calls asking people who didn't book if they still need help." },
@@ -37,7 +38,7 @@ export function AdminDialog({ open, onOpenChange }: { open: boolean; onOpenChang
       {!unlocked ? (
         <form onSubmit={unlock} className="mx-auto flex max-w-xs flex-col items-center gap-4 py-6 text-center">
           <Lock className="size-5 text-muted-foreground" strokeWidth={1.5} />
-          <input type="password" inputMode="numeric" autoFocus value={pin} onChange={(e) => setPin(e.target.value)} placeholder="Admin PIN" className={cn("w-full rounded-lg border bg-background px-3 py-2.5 text-center text-sm tracking-[0.3em] outline-none", bad ? "border-bad" : "border-border focus:border-white/25")} />
+          <input type="password" inputMode="numeric" autoFocus value={pin} onChange={(e) => setPin(e.target.value)} placeholder="Admin PIN" className={cn("w-full rounded-lg border bg-background px-3 py-2.5 text-center text-sm tracking-[0.3em] outline-none", bad ? "border-bad" : "border-border focus:border-foreground/25")} />
           <button className="w-full rounded-lg bg-foreground py-2.5 text-sm font-medium text-background">Unlock</button>
         </form>
       ) : (
@@ -62,6 +63,13 @@ export function AdminDialog({ open, onOpenChange }: { open: boolean; onOpenChang
             <Field label="Hours" value={settings.hours} onChange={(v) => update({ hours: v })} />
             <Field label="Service area" value={settings.serviceArea} onChange={(v) => update({ serviceArea: v })} />
             <Field label="Greeting" value={settings.greeting} onChange={(v) => update({ greeting: v })} />
+          </section>
+          <section className="flex flex-col gap-3">
+            <h4 className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">Crew</h4>
+            {settings.crew.map((c) => (
+              <div key={c.id} className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2 text-[13px]"><span className="min-w-0 truncate">{c.name} <span className="text-muted-foreground">· {c.phone}</span></span><button onClick={() => update({ crew: settings.crew.filter((x) => x.id !== c.id) })} className="shrink-0 text-xs text-muted-foreground hover:text-bad">Remove</button></div>
+            ))}
+            <button onClick={() => update({ crew: [...settings.crew, { id: `cr${Date.now()}`, name: "New crew member", role: "Technician", phone: "(253) 555-0100", skills: ["Water damage"], color: "#2a62e8", status: "available" }] })} className="self-start rounded-lg border border-border px-3 py-2 text-xs text-muted-foreground transition hover:text-foreground">Add crew member</button>
           </section>
           <section className="flex flex-col gap-3">
             <h4 className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">Agent names</h4>

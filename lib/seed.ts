@@ -44,6 +44,7 @@ const ISSUE_RATE: Record<IssueKey, [number, number]> = {
 const FIRST = ["Marcus","Dana","Priya","Tom","Elena","Chris","Jordan","Nate","Alicia","Ben","Rosa","Kyle","Megan","Omar","Sandra","Luis","Hannah","Greg","Tasha","Victor","Monica","Dennis","Leah","Ray"];
 const LAST = ["Alvarez","Brooks","Chen","Dawson","Ellis","Foster","Grant","Hughes","Ibarra","Jensen","Kim","Lopez","Mercer","Nguyen","Ortiz","Patel","Quinn","Reyes","Stone","Tran","Vance","Walsh","Young"];
 const STREETS = ["Pine St","Harbor Ave","Cedar Ln","Ridge Rd","Lakeview Dr","Maple Ct","Union Ave","6th Ave","Sound View Dr","Orchard St"];
+const CITIES = ["Tacoma","Gig Harbor","Puyallup","Federal Way","Lakewood"];
 const SERVICES = ["Water damage","Burst pipe","Fire & smoke","Mold","Sewage backup","Storm damage"];
 
 function rng(seed: number) {
@@ -131,6 +132,7 @@ export function generate(now = Date.now()): Dataset {
       let ts = at.getTime(); if (ts > now) ts -= DAY;
       const name = nm(); const service = pick(r, SERVICES);
       const addr = `${100 + Math.floor(r() * 8800)} ${pick(r, STREETS)}`;
+      const full = `${addr}, ${pick(r, CITIES)}, WA`;
       // issue roll
       let issue: IssueKey | undefined;
       for (const k of Object.keys(ISSUE_RATE) as IssueKey[]) {
@@ -149,7 +151,7 @@ export function generate(now = Date.now()): Dataset {
       const dur = issue === "early_hangup" ? 3 + Math.floor(r() * 6) : outcome === "spam" ? 8 + Math.floor(r() * 12) : issue === "poor_audio" ? 25 + Math.floor(r() * 25) : 55 + Math.floor(r() * 230);
       calls.push({
         id: `c_${cid++}`, at: ts, durationSec: dur, name: outcome === "spam" ? "Unknown caller" : name, phone: phone(),
-        afterHours: isAfterHours(ts), service, outcome, issue, recovered, transferred,
+        afterHours: isAfterHours(ts), service, address: full, outcome, issue, recovered, transferred,
         summary: issue ? `${ISSUES[issue].title}.` : outcome === "spam" ? "Recorded sales call, no alert sent." : outcome === "info" ? `Question about services, answered. Follow-up sent by email.` : outcome === "transferred" ? `${service}. Caller frustrated, transferred live to the owner.` : outcome === "quote_requested" ? `${service} estimate request at ${addr}.` : `${service} at ${addr}. Job alert sent.`,
         steps: stepsFor(outcome, issue, transferred), transcript: transcript(outcome, issue, name, service, addr),
       });
@@ -177,7 +179,7 @@ export function generate(now = Date.now()): Dataset {
     if (c.outcome === "spam" || c.outcome === "info" && r() < 0.5 || (c.issue && !c.recovered)) continue;
     const st: LeadStatus = c.outcome === "job_booked" ? "booked" : c.outcome === "transferred" ? (r() < 0.7 ? "booked" : "contacted") : statusFor(now - c.at);
     const first = c.name.split(" ")[0].toLowerCase();
-    leads.push({ id: `l_${lid++}`, at: c.at, source: "call", name: c.name, phone: c.phone, email: `${first}${Math.floor(r() * 90)}@gmail.com`, service: c.service, status: st, firstReplyMin: 1 + Math.floor(r() * 4), callId: c.id, touches: mkTouches(c.at, st) });
+    leads.push({ id: `l_${lid++}`, at: c.at, source: "call", name: c.name, phone: c.phone, email: `${first}${Math.floor(r() * 90)}@gmail.com`, service: c.service, address: c.address, status: st, firstReplyMin: 1 + Math.floor(r() * 4), callId: c.id, touches: mkTouches(c.at, st) });
   }
   for (let d = 60; d >= 0; d--) {
     const nf = r() < 0.75 ? 1 : 0; const ne = r() < 0.25 ? 1 : 0;
@@ -186,7 +188,7 @@ export function generate(now = Date.now()): Dataset {
       const ts = now - d * DAY + (8 + Math.floor(r() * 12)) * 3600000 - 8 * 3600000 + Math.floor(r() * 3600000);
       if (ts > now) continue;
       const name = nm(); const st = statusFor(now - ts);
-      leads.push({ id: `l_${lid++}`, at: ts, source: src, name, phone: phone(), email: `${name.split(" ")[0].toLowerCase()}.${name.split(" ")[1].toLowerCase()}@${pick(r, ["gmail.com", "outlook.com", "yahoo.com"])}`, service: pick(r, SERVICES), status: st, firstReplyMin: src === "form" ? 1 + Math.floor(r() * 5) : 4 + Math.floor(r() * 22), touches: mkTouches(ts, st) });
+      leads.push({ id: `l_${lid++}`, at: ts, source: src, name, phone: phone(), email: `${name.split(" ")[0].toLowerCase()}.${name.split(" ")[1].toLowerCase()}@${pick(r, ["gmail.com", "outlook.com", "yahoo.com"])}`, service: pick(r, SERVICES), address: `${100 + Math.floor(r() * 8800)} ${pick(r, STREETS)}, ${pick(r, CITIES)}, WA`, status: st, firstReplyMin: src === "form" ? 1 + Math.floor(r() * 5) : 4 + Math.floor(r() * 22), touches: mkTouches(ts, st) });
     }
   }
   leads.sort((a, b) => b.at - a.at);
@@ -198,7 +200,7 @@ export function generate(now = Date.now()): Dataset {
     const age = now - l.at;
     const status = age < 3 * DAY ? "scheduled" : age < 9 * DAY ? "in_progress" : "completed";
     const value = r() < 0.8 ? Math.round((1800 + r() * 14000) / 50) * 50 : null;
-    jobs.push({ id: `j_${jid++}`, leadId: l.id, customer: l.name, service: l.service, value, status, at: l.at + 3600000 * (2 + Math.floor(r() * 20)), source: l.source });
+    jobs.push({ id: `j_${jid++}`, leadId: l.id, customer: l.name, service: l.service, address: l.address, phone: l.phone, value, status, at: l.at + 3600000 * (2 + Math.floor(r() * 20)), source: l.source });
   }
   jobs.sort((a, b) => b.at - a.at);
 

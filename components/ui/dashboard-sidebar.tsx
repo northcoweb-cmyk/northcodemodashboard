@@ -30,10 +30,10 @@ function NavItem({ item, activeId }: { item: NavItemData; activeId: string }) {
         ) : null}
         <span className="truncate text-[13px] tracking-wide">{item.title}</span>
       </div>
-      {item.badge != null && <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-white/10 px-1.5 text-[10px] font-medium tnum">{item.badge}</span>}
+      {item.badge != null && <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-foreground/10 px-1.5 text-[10px] font-medium tnum">{item.badge}</span>}
     </>
   );
-  const cls = cn("group flex w-full select-none items-center justify-between rounded-md px-2.5 py-[7px] text-left transition-all duration-200", active ? "bg-white/10 font-medium text-foreground" : "text-muted-foreground hover:bg-white/5 hover:text-foreground/90");
+  const cls = cn("group flex w-full select-none items-center justify-between rounded-md px-2.5 py-[7px] text-left transition-all duration-200", active ? "bg-foreground/10 font-medium text-foreground" : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground/90");
   return item.href ? <Link href={item.href} className={cls}>{inner}</Link> : <button onClick={item.onClick} className={cls}>{inner}</button>;
 }
 

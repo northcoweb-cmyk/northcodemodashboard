@@ -24,7 +24,7 @@ export function Sheet({ open, onOpenChange, title, description, children, width 
               <Dialog.Title className="truncate text-[15px] font-medium tracking-tight">{title}</Dialog.Title>
               <Dialog.Description className={cn("mt-0.5 text-xs text-muted-foreground", !description && "sr-only")}>{description || title}</Dialog.Description>
             </div>
-            <Dialog.Close className="rounded-md p-1.5 text-muted-foreground transition hover:bg-white/5 hover:text-foreground" aria-label="Close"><X className="size-4" strokeWidth={1.5} /></Dialog.Close>
+            <Dialog.Close className="rounded-md p-1.5 text-muted-foreground transition hover:bg-foreground/5 hover:text-foreground" aria-label="Close"><X className="size-4" strokeWidth={1.5} /></Dialog.Close>
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto no-scrollbar px-5 py-4">{children}</div>
         </Dialog.Content>

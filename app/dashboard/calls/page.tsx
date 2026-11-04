@@ -24,7 +24,7 @@ function CallSheet({ call, onClose }: { call: Call | null; onClose: () => void }
             <ol className="flex flex-col gap-3">
               {call.steps.map((s) => (
                 <li key={s.key} className="flex items-start gap-3">
-                  <span className={cn("mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full", s.state === "done" ? "bg-good/15 text-good" : s.state === "flagged" ? "bg-warn/15 text-warn" : "bg-white/[0.06] text-muted-foreground")}>{s.state === "done" ? <Check className="size-3" strokeWidth={2.5} /> : s.state === "flagged" ? <Flag className="size-3" /> : <Minus className="size-3" />}</span>
+                  <span className={cn("mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full", s.state === "done" ? "bg-good/15 text-good" : s.state === "flagged" ? "bg-warn/15 text-warn" : "bg-foreground/[0.06] text-muted-foreground")}>{s.state === "done" ? <Check className="size-3" strokeWidth={2.5} /> : s.state === "flagged" ? <Flag className="size-3" /> : <Minus className="size-3" />}</span>
                   <div><div className="text-[13px] font-medium">{s.label}</div><div className="text-xs text-muted-foreground">{s.note}</div></div>
                 </li>
               ))}
@@ -34,7 +34,7 @@ function CallSheet({ call, onClose }: { call: Call | null; onClose: () => void }
           <div>
             <h4 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground/70">Transcript</h4>
             <div className="flex flex-col gap-2">
-              {call.transcript.map((t, i) => <div key={i} className={cn("max-w-[88%] rounded-2xl px-3.5 py-2 text-[13px] leading-relaxed", t.who === "ai" ? "self-start border border-border bg-card" : "self-end bg-white/10")}><span className="mb-0.5 block text-[10px] uppercase tracking-wider text-muted-foreground">{t.who === "ai" ? "Receptionist" : "Caller"}</span>{t.text}</div>)}
+              {call.transcript.map((t, i) => <div key={i} className={cn("max-w-[88%] rounded-2xl px-3.5 py-2 text-[13px] leading-relaxed", t.who === "ai" ? "self-start border border-border bg-card" : "self-end bg-foreground/10")}><span className="mb-0.5 block text-[10px] uppercase tracking-wider text-muted-foreground">{t.who === "ai" ? "Receptionist" : "Caller"}</span>{t.text}</div>)}
             </div>
           </div>
         </div>
@@ -50,12 +50,12 @@ function Calls({ ds }: { ds: Dataset }) {
   return (
     <>
       <PageTitle title="Calls" sub="Every call, how it was handled, and what was said. Click a call to open it." />
-      <div className="mb-4 flex flex-wrap gap-2">{FILTERS.map(([k, l]) => <button key={k} onClick={() => setF(k)} className={cn("rounded-full border px-3 py-1.5 text-xs transition", f === k ? "border-white/25 bg-white/10" : "border-border text-muted-foreground hover:text-foreground")}>{l}</button>)}</div>
+      <div className="mb-4 flex flex-wrap gap-2">{FILTERS.map(([k, l]) => <button key={k} onClick={() => setF(k)} className={cn("rounded-full border px-3 py-1.5 text-xs transition", f === k ? "border-foreground/25 bg-foreground/10" : "border-border text-muted-foreground hover:text-foreground")}>{l}</button>)}</div>
       <Card>
         <CardHead title={`${rows.length} calls`} sub="Most recent first" />
         <Table head={["Caller", "When", "Length", "Outcome", "Summary"]}>
           {rows.map((c) => (
-            <tr key={c.id} onClick={() => setSel(c)} className="cursor-pointer transition hover:bg-white/[0.03]">
+            <tr key={c.id} onClick={() => setSel(c)} className="cursor-pointer transition hover:bg-foreground/[0.03]">
               <td className="whitespace-nowrap font-medium">{c.name}</td>
               <td className="tnum whitespace-nowrap text-muted-foreground">{when(c.at)}{c.afterHours && <span className="ml-1.5 text-blue">●</span>}</td>
               <td className="tnum whitespace-nowrap text-muted-foreground">{dur(c.durationSec)}</td>
