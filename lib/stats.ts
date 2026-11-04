@@ -6,8 +6,8 @@ export const within = (ds: Dataset, days: number, offset = 0) => (t: number) => 
 const avg = (a: number[]) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0);
 const pct = (n: number, d: number) => (d ? Math.round((n / d) * 100) : 0);
 
-export function summary(ds: Dataset, days = 30) {
-  const cur = within(ds, days), prev = within(ds, days, days);
+export function summary(ds: Dataset, days = 30, offset = 0) {
+  const cur = within(ds, days, offset), prev = within(ds, days, days + offset);
   const calls = ds.calls.filter((c) => cur(c.at)), pcalls = ds.calls.filter((c) => prev(c.at));
   const leads = ds.leads.filter((l) => cur(l.at)), pleads = ds.leads.filter((l) => prev(l.at));
   const jobs = ds.jobs.filter((j) => cur(j.at)), pjobs = ds.jobs.filter((j) => prev(j.at));

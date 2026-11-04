@@ -65,6 +65,8 @@ export interface Lead {
   email: string;
   service: string;
   address: string;
+  /** For form leads: which form or page they reached out from. */
+  via?: string;
   status: LeadStatus;
   firstReplyMin: number;
   callId?: string;

@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import type { Dataset, Settings } from "./types";
 import { DEFAULT_CREW } from "./dispatch";
+import { EMPTY_SIM, mergeSim, withSim, type SimStore } from "./sim";
 
 export const DEFAULTS: Settings = {
   crew: DEFAULT_CREW,
@@ -46,11 +47,18 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
 }
 export function useSettings() { const c = useContext(SettingsCtx); if (!c) throw new Error("SettingsProvider missing"); return c; }
 
-const DataCtx = createContext<{ data: Dataset | null; error: boolean }>({ data: null, error: false });
+interface DataValue { data: Dataset | null; error: boolean; sim: SimStore; simulate: (s: SimStore) => void; clearSim: () => void }
+const DataCtx = createContext<DataValue>({ data: null, error: false, sim: EMPTY_SIM, simulate: () => {}, clearSim: () => {} });
+const SIM_KEY = "nc_sim_v1";
 export function DataProvider({ children }: { children: React.ReactNode }) {
-  const [data, setData] = useState<Dataset | null>(null);
+  const [base, setBase] = useState<Dataset | null>(null);
   const [error, setError] = useState(false);
-  useEffect(() => { fetch("/api/data").then((r) => (r.ok ? r.json() : Promise.reject())).then(setData).catch(() => setError(true)); }, []);
-  return <DataCtx.Provider value={{ data, error }}>{children}</DataCtx.Provider>;
+  const [sim, setSim] = useState<SimStore>(EMPTY_SIM);
+  useEffect(() => { fetch("/api/data").then((r) => (r.ok ? r.json() : Promise.reject())).then(setBase).catch(() => setError(true)); }, []);
+  useEffect(() => { try { const raw = localStorage.getItem(SIM_KEY); if (raw) setSim({ ...EMPTY_SIM, ...JSON.parse(raw) }); } catch {} }, []);
+  const persist = (n: SimStore) => { setSim(n); try { localStorage.setItem(SIM_KEY, JSON.stringify(n)); } catch {} };
+  const data = useMemo(() => (base ? withSim(base, sim) : null), [base, sim]);
+  const value = useMemo<DataValue>(() => ({ data, error, sim, simulate: (s) => persist(mergeSim(sim, s)), clearSim: () => persist(EMPTY_SIM) }), [data, error, sim]);
+  return <DataCtx.Provider value={value}>{children}</DataCtx.Provider>;
 }
 export const useData = () => useContext(DataCtx);

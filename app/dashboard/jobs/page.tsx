@@ -7,12 +7,16 @@ import { Card, CardHead, PageTitle, Pill, Stat, Table, when } from "@/components
 import { Editable } from "@/components/ui/editable";
 import { money } from "@/lib/stats";
 import { JobsTaskList } from "@/components/jobs-tasks";
-import type { Dataset } from "@/lib/types";
+import { LeadTimelineSheet } from "@/components/lead-timeline";
+import { useSettings } from "@/lib/store";
+import type { Dataset, Lead } from "@/lib/types";
 
 const ST: Record<string, [string, string]> = { scheduled: ["blue", "Scheduled"], in_progress: ["warn", "In progress"], completed: ["good", "Completed"] };
 const KEY = "nc_job_values_v1";
 
 function Jobs({ ds }: { ds: Dataset }) {
+  const { settings } = useSettings();
+  const [sel, setSel] = useState<Lead | null>(null);
   const [vals, setVals] = useState<Record<string, number>>({});
   useEffect(() => { try { setVals(JSON.parse(localStorage.getItem(KEY) || "{}")); } catch {} }, []);
   const val = (j: Dataset["jobs"][number]) => vals[j.id] ?? j.value;
@@ -32,18 +36,19 @@ function Jobs({ ds }: { ds: Dataset }) {
         <CardHead title="All jobs" sub="Click a value to change it" />
         <Table head={["Customer", "Service", "Source", "Status", "Booked", "Value"]}>
           {ds.jobs.slice(0, 50).map((j) => (
-            <tr key={j.id}>
+            <tr key={j.id} onClick={() => setSel(ds.leads.find((l) => l.id === j.leadId) ?? null)} className="cursor-pointer transition hover:bg-foreground/[0.03]">
               <td className="whitespace-nowrap font-medium">{j.customer}</td>
               <td className="whitespace-nowrap text-muted-foreground">{j.service}</td>
               <td className="whitespace-nowrap text-muted-foreground">{j.source === "call" ? "Phone call" : j.source === "form" ? "Website form" : "Email"}</td>
               <td><Pill tone={ST[j.status][0]}>{ST[j.status][1]}</Pill></td>
               <td className="tnum whitespace-nowrap text-muted-foreground">{when(j.at)}</td>
-              <td className="tnum whitespace-nowrap"><Editable value={val(j) != null ? String(val(j)) : ""} placeholder="Add value" onSave={(v) => set(j.id, v)} className="inline-block min-w-14" /></td>
+              <td className="tnum whitespace-nowrap" onClick={(e) => e.stopPropagation()}><Editable value={val(j) != null ? String(val(j)) : ""} placeholder="Add value" onSave={(v) => set(j.id, v)} className="inline-block min-w-14" /></td>
             </tr>
           ))}
         </Table>
       </Card>
       </div>
+      <LeadTimelineSheet lead={sel} now={ds.now} followup={settings.modules.followup.active} onClose={() => setSel(null)} />
     </>
   );
 }

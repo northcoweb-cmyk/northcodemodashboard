@@ -37,19 +37,19 @@ function NavItem({ item, activeId }: { item: NavItemData; activeId: string }) {
   return item.href ? <Link href={item.href} className={cls}>{inner}</Link> : <button onClick={item.onClick} className={cls}>{inner}</button>;
 }
 
-export function SidebarNav({ className = "", groups, bottom, activeId, businessName, plan, onBusinessName, onPlan, onAdminHint }: {
+export function SidebarNav({ className = "", groups, bottom, activeId, businessName, plan, onBusinessName, onPlan, onLogoTap }: {
   className?: string; groups: NavGroupData[]; bottom: NavItemData[]; activeId: string;
-  businessName: string; plan: string; onBusinessName: (v: string) => void; onPlan: (v: string) => void; onAdminHint?: () => void;
+  businessName: string; plan: string; onBusinessName: (v: string) => void; onPlan: (v: string) => void; onLogoTap?: () => void;
 }) {
   return (
     <div className={cn("flex h-full w-[260px] flex-col border-r border-border bg-card/50 p-3", className)}>
       <div className="mb-4 flex items-center gap-3 px-2 py-2">
-        <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary text-[13px] font-semibold text-primary-foreground shadow-sm">{businessName.charAt(0)}</div>
+        <div onClick={onLogoTap} className="flex size-8 shrink-0 select-none items-center justify-center rounded-md bg-primary text-[13px] font-semibold text-primary-foreground shadow-sm">{businessName.charAt(0)}</div>
         <div className="flex min-w-0 flex-col">
           <Editable value={businessName} onSave={onBusinessName} className="mb-1 block truncate text-[13px] font-medium leading-none" />
           <Editable value={plan} onSave={onPlan} className="block truncate text-[11px] leading-none text-muted-foreground" />
         </div>
-        <ChevronDown className="ml-auto size-4 shrink-0 text-muted-foreground/30" strokeWidth={1.5} onClick={onAdminHint} />
+        <ChevronDown className="ml-auto size-4 shrink-0 text-muted-foreground/30" strokeWidth={1.5} />
       </div>
       <div className="no-scrollbar mt-1 flex flex-1 flex-col gap-4 overflow-y-auto">
         {groups.map((g, i) => (

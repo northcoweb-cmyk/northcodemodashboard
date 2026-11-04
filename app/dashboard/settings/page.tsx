@@ -1,9 +1,7 @@
 "use client";
 
-import { useState } from "react";
 import { PageTitle, Card, CardHead } from "@/components/kit";
 import { Editable } from "@/components/ui/editable";
-import { AdminDialog } from "@/components/admin-dialog";
 import { useSettings } from "@/lib/store";
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
@@ -12,7 +10,6 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 
 export default function Page() {
   const { settings: s, update } = useSettings();
-  const [admin, setAdmin] = useState(false);
   return (
     <>
       <PageTitle title="Settings" sub="Click any value to change it." />
@@ -30,8 +27,6 @@ export default function Page() {
         <Row label="Job alerts go to"><Editable value={s.alertEmail} onSave={(v) => update({ alertEmail: v })} /></Row>
         <Row label="Transfers go to"><Editable value={s.phone} onSave={(v) => update({ phone: v })} /></Row>
       </Card>
-      <div className="mt-16 max-w-3xl text-center"><button onClick={() => setAdmin(true)} className="text-[11px] text-muted-foreground/40 transition hover:text-muted-foreground">NorthCo · v1.0</button></div>
-      <AdminDialog open={admin} onOpenChange={setAdmin} />
     </>
   );
 }

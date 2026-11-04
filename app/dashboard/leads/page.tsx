@@ -1,17 +1,22 @@
 "use client";
 
+import { useState } from "react";
 import { Gate } from "@/components/gate";
+import { LeadTimelineSheet } from "@/components/lead-timeline";
+import { useSettings } from "@/lib/store";
 import { Card, CardHead, PageTitle, Pill, Table, Stat, when } from "@/components/kit";
 import { summary, sources } from "@/lib/stats";
 import { BarList } from "@/components/ui/charts";
 import { Timer, Users, FileInput } from "lucide-react";
-import type { Dataset } from "@/lib/types";
+import type { Dataset, Lead } from "@/lib/types";
 
 const ST: Record<string, [string, string]> = { new: ["blue", "New"], contacted: ["mute", "Contacted"], replied: ["good", "Replied"], booked: ["good", "Booked"], lost: ["mute", "Closed"] };
 const SRC = { call: "Phone call", form: "Website form", email: "Email" };
 
 function Leads({ ds }: { ds: Dataset }) {
   const s = summary(ds, 30);
+  const { settings } = useSettings();
+  const [sel, setSel] = useState<Lead | null>(null);
   return (
     <>
       <PageTitle title="Leads" sub="Everyone who reached out, where they came from, and how fast they got a reply." />
@@ -25,9 +30,9 @@ function Leads({ ds }: { ds: Dataset }) {
           <CardHead title="All leads" sub="Most recent first" />
           <Table head={["Name", "Source", "Service", "Status", "First reply", "Received"]}>
             {ds.leads.slice(0, 50).map((l) => (
-              <tr key={l.id}>
+              <tr key={l.id} onClick={() => setSel(l)} className="cursor-pointer transition hover:bg-foreground/[0.03]">
                 <td className="whitespace-nowrap font-medium">{l.name}<div className="text-[11px] font-normal text-muted-foreground">{l.phone}</div></td>
-                <td className="whitespace-nowrap text-muted-foreground">{SRC[l.source]}</td>
+                <td className="whitespace-nowrap text-muted-foreground">{l.via ? l.via.split(" · ")[0] : SRC[l.source]}</td>
                 <td className="whitespace-nowrap text-muted-foreground">{l.service}</td>
                 <td><Pill tone={ST[l.status][0]}>{ST[l.status][1]}</Pill></td>
                 <td className="tnum whitespace-nowrap text-muted-foreground">{l.firstReplyMin} min</td>
@@ -38,6 +43,7 @@ function Leads({ ds }: { ds: Dataset }) {
         </Card>
         <Card explain="sources" className="h-fit"><CardHead title="By source" sub="Last 30 days" /><BarList rows={sources(ds, 30).map((x) => ({ label: x.label, n: x.n }))} color="#4ade9a" /></Card>
       </div>
+      <LeadTimelineSheet lead={sel} now={ds.now} followup={settings.modules.followup.active} onClose={() => setSel(null)} />
     </>
   );
 }

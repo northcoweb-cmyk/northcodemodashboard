@@ -13,4 +13,4 @@ Everything uses PIN 3725 (welcome screen and Admin). To change it, set `DASHBOAR
 `lib/agents.ts` routes a question to the right agent and answers from the same data.
 
 ## Admin
-Settings page, bottom: click the small "NorthCo · v1.0" text, enter 3725. Toggle modules (follow-up, website forms, check-in calls), show/hide them in the sidebar, edit business details and agent names. Settings persist in the browser (localStorage) until a real backend store exists.
+Hidden: tap the logo square at the top of the sidebar 5 times, or press Ctrl/Cmd+Shift+A, then enter 3725. Includes the event simulator. Toggle modules (follow-up, website forms, check-in calls), show/hide them in the sidebar, edit business details and agent names. Settings persist in the browser (localStorage) until a real backend store exists.

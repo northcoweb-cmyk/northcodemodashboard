@@ -45,6 +45,7 @@ const FIRST = ["Marcus","Dana","Priya","Tom","Elena","Chris","Jordan","Nate","Al
 const LAST = ["Alvarez","Brooks","Chen","Dawson","Ellis","Foster","Grant","Hughes","Ibarra","Jensen","Kim","Lopez","Mercer","Nguyen","Ortiz","Patel","Quinn","Reyes","Stone","Tran","Vance","Walsh","Young"];
 const STREETS = ["Pine St","Harbor Ave","Cedar Ln","Ridge Rd","Lakeview Dr","Maple Ct","Union Ave","6th Ave","Sound View Dr","Orchard St"];
 const CITIES = ["Tacoma","Gig Harbor","Puyallup","Federal Way","Lakewood"];
+export const FORM_PAGES = [["Emergency request form", "/emergency"], ["Free estimate form", "/contact"], ["Water damage page", "/water-damage"], ["Mold inspection page", "/mold-removal"], ["Fire & smoke page", "/fire-damage"]] as const;
 const SERVICES = ["Water damage","Burst pipe","Fire & smoke","Mold","Sewage backup","Storm damage"];
 
 function rng(seed: number) {
@@ -72,7 +73,7 @@ export function isAfterHours(ts: number) {
   return dow === 0 || dow === 6 || h < 8 || h >= 18;
 }
 
-function transcript(outcome: Outcome, issue: IssueKey | undefined, name: string, service: string, addr: string): Turn[] {
+export function transcript(outcome: Outcome, issue: IssueKey | undefined, name: string, service: string, addr: string): Turn[] {
   const a = (text: string): Turn => ({ who: "ai", text });
   const c = (text: string): Turn => ({ who: "caller", text });
   const open = a("Thanks for calling. This is the front desk. What's going on?");
@@ -95,7 +96,7 @@ function transcript(outcome: Outcome, issue: IssueKey | undefined, name: string,
   return [open, c(`${service} at my house, it's getting worse.`), a("Is anyone in danger, and is the water still running?"), c("Water's shut off. About an inch on the floor."), a("What's the address?"), c(`${addr}.`), a("Read back to confirm. Is that right?"), c("Yes."), a("A technician is being alerted now. You'll also get an email with the details.")];
 }
 
-function stepsFor(outcome: Outcome, issue: IssueKey | undefined, transferred: boolean): CallStep[] {
+export function stepsFor(outcome: Outcome, issue: IssueKey | undefined, transferred: boolean): CallStep[] {
   const mk = (key: CallStep["key"], label: string, state: CallStep["state"], note: string): CallStep => ({ key, label, state, note });
   const bad = issue === "poor_audio" || issue === "early_hangup";
   return [
@@ -129,7 +130,7 @@ export function generate(now = Date.now()): Dataset {
     for (let i = 0; i < n; i++) {
       const hour = wpick(r, HOUR_W);
       const at = new Date(dayStart); at.setUTCHours(hour + 8, Math.floor(r() * 60), Math.floor(r() * 60), 0);
-      let ts = at.getTime(); if (ts > now) ts -= DAY;
+      let ts = at.getTime(); while (ts > now) ts -= DAY;
       const name = nm(); const service = pick(r, SERVICES);
       const addr = `${100 + Math.floor(r() * 8800)} ${pick(r, STREETS)}`;
       const full = `${addr}, ${pick(r, CITIES)}, WA`;
@@ -188,7 +189,7 @@ export function generate(now = Date.now()): Dataset {
       const ts = now - d * DAY + (8 + Math.floor(r() * 12)) * 3600000 - 8 * 3600000 + Math.floor(r() * 3600000);
       if (ts > now) continue;
       const name = nm(); const st = statusFor(now - ts);
-      leads.push({ id: `l_${lid++}`, at: ts, source: src, name, phone: phone(), email: `${name.split(" ")[0].toLowerCase()}.${name.split(" ")[1].toLowerCase()}@${pick(r, ["gmail.com", "outlook.com", "yahoo.com"])}`, service: pick(r, SERVICES), address: `${100 + Math.floor(r() * 8800)} ${pick(r, STREETS)}, ${pick(r, CITIES)}, WA`, status: st, firstReplyMin: src === "form" ? 1 + Math.floor(r() * 5) : 4 + Math.floor(r() * 22), touches: mkTouches(ts, st) });
+      leads.push({ id: `l_${lid++}`, at: ts, source: src, name, phone: phone(), email: `${name.split(" ")[0].toLowerCase()}.${name.split(" ")[1].toLowerCase()}@${pick(r, ["gmail.com", "outlook.com", "yahoo.com"])}`, service: pick(r, SERVICES), address: `${100 + Math.floor(r() * 8800)} ${pick(r, STREETS)}, ${pick(r, CITIES)}, WA`, via: src === "form" ? (() => { const f = pick(r, FORM_PAGES); return `${f[0]} · ${f[1]}`; })() : undefined, status: st, firstReplyMin: src === "form" ? 1 + Math.floor(r() * 5) : 4 + Math.floor(r() * 22), touches: mkTouches(ts, st) });
     }
   }
   leads.sort((a, b) => b.at - a.at);

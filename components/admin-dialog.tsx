@@ -4,7 +4,9 @@ import { useState } from "react";
 import { Lock } from "lucide-react";
 import { Sheet } from "@/components/ui/sheet";
 import { AGENTS } from "@/lib/agents";
-import { DEFAULTS, useSettings } from "@/lib/store";
+import { DEFAULTS, useData, useSettings } from "@/lib/store";
+import { FORM_PAGES } from "@/lib/seed";
+import { SERVICES, SIM_OUTCOMES, simulateCall, simulateForm, type SimOutcome } from "@/lib/sim";
 import { cn } from "@/lib/utils";
 
 function Toggle({ on, onChange, label }: { on: boolean; onChange: (v: boolean) => void; label: string }) {
@@ -15,6 +17,41 @@ const Field = ({ label, value, onChange }: { label: string; value: string; onCha
     <input defaultValue={value} onBlur={(e) => e.target.value.trim() && onChange(e.target.value.trim())} className="rounded-lg border border-border bg-background px-3 py-2 text-[13px] text-foreground outline-none focus:border-foreground/25" />
   </label>
 );
+
+const sel = "rounded-lg border border-border bg-background px-3 py-2 text-[13px] text-foreground outline-none focus:border-foreground/25";
+function SimPanel() {
+  const { simulate, clearSim, sim } = useData();
+  const [kind, setKind] = useState<"call" | "form">("call");
+  const [name, setName] = useState("Dana Whitfield");
+  const [phone, setPhone] = useState("(253) 555-0188");
+  const [email, setEmail] = useState("dana@gmail.com");
+  const [service, setService] = useState(SERVICES[0]);
+  const [address, setAddress] = useState("412 Harbor Ave, Tacoma, WA");
+  const [outcome, setOutcome] = useState<SimOutcome>("job_booked");
+  const [via, setVia] = useState(`${FORM_PAGES[0][0]} · ${FORM_PAGES[0][1]}`);
+  const [msg, setMsg] = useState("");
+  const count = sim.calls.length + sim.leads.length;
+  function add() {
+    if (kind === "call") { simulate(simulateCall({ name, phone, service, address, outcome })); setMsg(outcome === "job_booked" || outcome === "transferred" ? "Call added. A job was booked and the crew was dispatched. Check Calls, Jobs, Crew and Activity." : "Call added. Check Calls and Activity."); }
+    else { simulate(simulateForm({ name, phone, email, service, address, via })); setMsg("Form lead added. Open Website forms and click it to see the timeline."); }
+  }
+  return (
+    <section className="flex flex-col gap-3 rounded-xl border border-border p-4">
+      <div className="flex items-center justify-between"><h4 className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">Simulate an event</h4><div className="flex rounded-full border border-border p-0.5 text-xs">{(["call", "form"] as const).map((k) => <button key={k} onClick={() => setKind(k)} className={cn("rounded-full px-3 py-1 transition", kind === k ? "bg-foreground text-background" : "text-muted-foreground")}>{k === "call" ? "Incoming call" : "Website form"}</button>)}</div></div>
+      <div className="grid grid-cols-2 gap-2.5">
+        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" className={sel} />
+        <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Phone" className={sel} />
+        {kind === "form" && <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email" className={cn(sel, "col-span-2")} />}
+        <select value={service} onChange={(e) => setService(e.target.value)} className={sel}>{SERVICES.map((x) => <option key={x}>{x}</option>)}</select>
+        {kind === "call" ? <select value={outcome} onChange={(e) => setOutcome(e.target.value as SimOutcome)} className={sel}>{SIM_OUTCOMES.map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}</select>
+          : <select value={via} onChange={(e) => setVia(e.target.value)} className={sel}>{FORM_PAGES.map((f) => <option key={f[1]} value={`${f[0]} · ${f[1]}`}>{f[0]}</option>)}</select>}
+        <input value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Address" className={cn(sel, "col-span-2")} />
+      </div>
+      <div className="flex items-center gap-3"><button onClick={add} className="rounded-lg bg-foreground px-4 py-2 text-xs font-medium text-background">Add to dashboard</button>{count > 0 && <button onClick={() => { clearSim(); setMsg("Simulated events cleared."); }} className="text-xs text-muted-foreground hover:text-foreground">Clear {count} simulated</button>}</div>
+      {msg && <p className="text-xs text-good">{msg}</p>}
+    </section>
+  );
+}
 
 const MODULES = [
   { k: "crew" as const, title: "Crew dispatch", sub: "Sends the right crew the address and customer details when a job is booked." },
@@ -34,7 +71,7 @@ export function AdminDialog({ open, onOpenChange }: { open: boolean; onOpenChang
     if (r.ok) { setUnlocked(true); setBad(false); } else { setBad(true); setPin(""); }
   }
   return (
-    <Sheet open={open} onOpenChange={(o) => { onOpenChange(o); if (!o) { setUnlocked(false); setPin(""); } }} title="Admin" description="Controls for what this client sees" width="max-w-lg" side="center">
+    <Sheet open={open} onOpenChange={(o) => { onOpenChange(o); if (!o) { setUnlocked(false); setPin(""); } }} title="Admin" description="Controls for what this client sees" width="max-w-xl" side="center">
       {!unlocked ? (
         <form onSubmit={unlock} className="mx-auto flex max-w-xs flex-col items-center gap-4 py-6 text-center">
           <Lock className="size-5 text-muted-foreground" strokeWidth={1.5} />
@@ -43,6 +80,7 @@ export function AdminDialog({ open, onOpenChange }: { open: boolean; onOpenChang
         </form>
       ) : (
         <div className="flex flex-col gap-7">
+          <SimPanel />
           <section className="flex flex-col gap-4">
             <h4 className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">Modules</h4>
             {MODULES.map((m) => (
