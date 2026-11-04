@@ -59,13 +59,13 @@ export const EXPLAIN: Record<string, Explain> = {
     note: "Opens are approximate: some email apps block the tracking pixel.",
   },
   handling: call("How every call is handled"),
-  issues: {
-    title: "Issues we caught and fixed", agent: "receptionist", source: "Call classification + change log",
+  wonback: {
+    title: "Won back from quiet leads", agent: "leads", source: "Lead status + follow-up events",
     steps: [
-      { label: "Flagged", detail: "Calls that went sideways (bad audio, hang-up, out of area, price question, address unclear) are labeled as they end." },
-      { label: "Reviewed", detail: "The pattern is reviewed on a schedule, not call by call." },
-      { label: "Fixed", detail: "The receptionist's instructions are updated and the change is logged with its date." },
-      { label: "Measured", detail: "Rate before the fix vs. after is calculated from your real call history." },
+      { label: "Lead goes quiet", detail: "No reply to the first follow-ups, and no booking, for about two weeks." },
+      { label: "Personal message", detail: "A short message goes out that names their job and address, with an easy way to say it's already sorted." },
+      { label: "They answer", detail: "A reply or a booking restarts the conversation and notifies the owner." },
+      { label: "Counted here", detail: "Jobs booked after a win-back message are counted with their value, which you enter." },
     ],
   },
   sources: {

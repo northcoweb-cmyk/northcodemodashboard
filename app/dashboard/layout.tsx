@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { Activity, ArrowUp, BarChart3, CalendarDays, ShieldCheck, HardHat, Moon, Sun, FileInput, Hammer, LayoutDashboard, LogOut, MailCheck, Menu, PhoneCall, PhoneOutgoing, Settings as Cog, Users } from "lucide-react";
+import { Activity, ArrowUp, BarChart3, CalendarDays, HardHat, Moon, Sun, FileInput, Hammer, LayoutDashboard, LogOut, MailCheck, Menu, PhoneCall, PhoneOutgoing, Settings as Cog, Users } from "lucide-react";
 import { SidebarNav, type NavGroupData } from "@/components/ui/dashboard-sidebar";
 import { AgentIcon } from "@/components/agent-icon";
 import { agentById } from "@/lib/agents";
@@ -13,7 +13,7 @@ import { ExplainProvider } from "@/components/explain-provider";
 import { DataProvider, SettingsProvider, useSettings } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
-const TITLES: Record<string, string> = { "/dashboard": "Overview", "/dashboard/calls": "Calls", "/dashboard/leads": "Leads", "/dashboard/follow-ups": "Follow-ups", "/dashboard/jobs": "Jobs", "/dashboard/crew": "Crew", "/dashboard/activity": "Activity", "/dashboard/issues": "Issues & fixes", "/dashboard/schedule": "Schedule", "/dashboard/reports": "Reports", "/dashboard/forms": "Website forms", "/dashboard/check-ins": "Check-in calls", "/dashboard/settings": "Settings" };
+const TITLES: Record<string, string> = { "/dashboard": "Overview", "/dashboard/calls": "Calls", "/dashboard/leads": "Leads", "/dashboard/follow-ups": "Follow-ups", "/dashboard/jobs": "Jobs", "/dashboard/crew": "Crew", "/dashboard/activity": "Activity", "/dashboard/schedule": "Schedule", "/dashboard/reports": "Reports", "/dashboard/forms": "Website forms", "/dashboard/check-ins": "Check-in calls", "/dashboard/settings": "Settings" };
 
 function Shell({ children }: { children: React.ReactNode }) {
   const path = usePathname(); const router = useRouter();
@@ -37,7 +37,6 @@ function Shell({ children }: { children: React.ReactNode }) {
     ] },
     { heading: "Phone", items: [
       { id: "/dashboard/calls", title: "Calls", icon: PhoneCall, href: "/dashboard/calls" },
-      { id: "/dashboard/issues", title: "Issues & fixes", icon: ShieldCheck, href: "/dashboard/issues" },
     ] },
     { heading: "Customers", items: [
       { id: "/dashboard/leads", title: "Leads", icon: Users, href: "/dashboard/leads" },

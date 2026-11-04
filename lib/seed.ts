@@ -2,6 +2,8 @@ import type {
   Call, CallStep, CheckIn, Dataset, Fix, IssueKey, Job, Lead, LeadSource, LeadStatus, Outcome, Touch, Turn,
 } from "./types";
 
+export const IMPROVEMENT_NAMES: Record<IssueKey, string> = { poor_audio: "Audio quality handling", early_hangup: "Faster greeting", out_of_area: "Service-area routing", needs_pricing: "Insurance and billing answers", address_unclear: "Address read-back" };
+
 export const ISSUES: Record<IssueKey, { title: string; short: string; fix: string }> = {
   poor_audio: {
     title: "Couldn't hear the caller",
@@ -34,11 +36,11 @@ const FIX_DAYS: Record<IssueKey, number> = {
   out_of_area: 41, poor_audio: 34, address_unclear: 27, early_hangup: 21, needs_pricing: 14,
 };
 const ISSUE_RATE: Record<IssueKey, [number, number]> = {
-  poor_audio: [0.075, 0.03],
-  early_hangup: [0.07, 0.025],
-  out_of_area: [0.05, 0.02],
-  needs_pricing: [0.07, 0.03],
-  address_unclear: [0.06, 0.015],
+  poor_audio: [0.03, 0.012],
+  early_hangup: [0.028, 0.01],
+  out_of_area: [0.02, 0.008],
+  needs_pricing: [0.028, 0.012],
+  address_unclear: [0.024, 0.006],
 };
 
 const FIRST = ["Marcus","Dana","Priya","Tom","Elena","Chris","Jordan","Nate","Alicia","Ben","Rosa","Kyle","Megan","Omar","Sandra","Luis","Hannah","Greg","Tasha","Victor","Monica","Dennis","Leah","Ray"];
@@ -46,6 +48,9 @@ const LAST = ["Alvarez","Brooks","Chen","Dawson","Ellis","Foster","Grant","Hughe
 const STREETS = ["Pine St","Harbor Ave","Cedar Ln","Ridge Rd","Lakeview Dr","Maple Ct","Union Ave","6th Ave","Sound View Dr","Orchard St"];
 const CITIES = ["Tacoma","Gig Harbor","Puyallup","Federal Way","Lakewood"];
 export const FORM_PAGES = [["Emergency request form", "/emergency"], ["Free estimate form", "/contact"], ["Water damage page", "/water-damage"], ["Mold inspection page", "/mold-removal"], ["Fire & smoke page", "/fire-damage"]] as const;
+const VALUE: Record<string, [number, number]> = { "Water damage": [2800, 6500], "Burst pipe": [2200, 5500], "Fire & smoke": [8000, 22000], Mold: [2500, 7000], "Sewage backup": [3000, 7500], "Storm damage": [2000, 9000] };
+const SVC_W: [string, number][] = [["Water damage", 35], ["Burst pipe", 20], ["Mold", 15], ["Storm damage", 12], ["Sewage backup", 10], ["Fire & smoke", 8]];
+function wsvc(r: () => number) { let x = r() * 100; for (const [n, w] of SVC_W) { x -= w; if (x <= 0) return n; } return "Water damage"; }
 const SERVICES = ["Water damage","Burst pipe","Fire & smoke","Mold","Sewage backup","Storm damage"];
 
 function rng(seed: number) {
@@ -125,13 +130,13 @@ export function generate(now = Date.now()): Dataset {
   for (let d = 60; d >= 0; d--) {
     const dayStart = now - d * DAY;
     const dow = new Date(dayStart).getDay();
-    let n = 2 + Math.floor(r() * 3) + (dow === 0 || dow === 6 ? 1 : 0);
-    if (d === 38 || d === 12 || d === 5) n += 5; // storm days
+    let n = 11 + Math.floor(r() * 7) - (dow === 0 || dow === 6 ? 3 : 0);
+    if (d === 38 || d === 12 || d === 5) n += 8; // storm days
     for (let i = 0; i < n; i++) {
       const hour = wpick(r, HOUR_W);
       const at = new Date(dayStart); at.setUTCHours(hour + 8, Math.floor(r() * 60), Math.floor(r() * 60), 0);
       let ts = at.getTime(); while (ts > now) ts -= DAY;
-      const name = nm(); const service = pick(r, SERVICES);
+      const name = nm(); const service = wsvc(r);
       const addr = `${100 + Math.floor(r() * 8800)} ${pick(r, STREETS)}`;
       const full = `${addr}, ${pick(r, CITIES)}, WA`;
       // issue roll
@@ -145,7 +150,7 @@ export function generate(now = Date.now()): Dataset {
       if (issue) outcome = "issue";
       else {
         const x = r();
-        outcome = x < 0.07 ? "spam" : x < 0.17 ? "info" : x < 0.4 ? "quote_requested" : x < 0.5 ? "transferred" : "job_booked";
+        outcome = x < 0.14 ? "spam" : x < 0.56 ? "info" : x < 0.9 ? "quote_requested" : x < 0.94 ? "transferred" : "job_booked";
         if (outcome === "transferred") transferred = true;
       }
       const recovered = issue ? r() < (issue === "early_hangup" ? 0.1 : issue === "out_of_area" ? 0 : 0.55) : undefined;
@@ -175,24 +180,34 @@ export function generate(now = Date.now()): Dataset {
     }
     return out;
   };
-  const statusFor = (age: number): LeadStatus => { const x = r(); return age < 2 * DAY ? (x < 0.5 ? "new" : "contacted") : x < 0.38 ? "booked" : x < 0.55 ? "replied" : x < 0.8 ? "contacted" : "lost"; };
+  const statusFor = (age: number): LeadStatus => { const x = r(); if (age < 2 * DAY) return x < 0.5 ? "new" : "contacted"; const v: LeadStatus = x < 0.075 ? "booked" : x < 0.22 ? "replied" : x < 0.46 ? "contacted" : "lost"; return v === "contacted" && age > 10 * DAY ? "lost" : v; };
   for (const c of calls) {
-    if (c.outcome === "spam" || c.outcome === "info" && r() < 0.5 || (c.issue && !c.recovered)) continue;
+    if (c.outcome === "spam" || c.outcome === "info" && r() < 0.85 || (c.issue && !c.recovered)) continue;
     const st: LeadStatus = c.outcome === "job_booked" ? "booked" : c.outcome === "transferred" ? (r() < 0.7 ? "booked" : "contacted") : statusFor(now - c.at);
     const first = c.name.split(" ")[0].toLowerCase();
     leads.push({ id: `l_${lid++}`, at: c.at, source: "call", name: c.name, phone: c.phone, email: `${first}${Math.floor(r() * 90)}@gmail.com`, service: c.service, address: c.address, status: st, firstReplyMin: 1 + Math.floor(r() * 4), callId: c.id, touches: mkTouches(c.at, st) });
   }
   for (let d = 60; d >= 0; d--) {
-    const nf = r() < 0.75 ? 1 : 0; const ne = r() < 0.25 ? 1 : 0;
+    const nf = r() < 0.8 ? 1 : 0; const ne = r() < 0.2 ? 1 : 0;
     for (let i = 0; i < nf + ne; i++) {
       const src: LeadSource = i < nf ? "form" : "email";
       const ts = now - d * DAY + (8 + Math.floor(r() * 12)) * 3600000 - 8 * 3600000 + Math.floor(r() * 3600000);
       if (ts > now) continue;
       const name = nm(); const st = statusFor(now - ts);
-      leads.push({ id: `l_${lid++}`, at: ts, source: src, name, phone: phone(), email: `${name.split(" ")[0].toLowerCase()}.${name.split(" ")[1].toLowerCase()}@${pick(r, ["gmail.com", "outlook.com", "yahoo.com"])}`, service: pick(r, SERVICES), address: `${100 + Math.floor(r() * 8800)} ${pick(r, STREETS)}, ${pick(r, CITIES)}, WA`, via: src === "form" ? (() => { const f = pick(r, FORM_PAGES); return `${f[0]} · ${f[1]}`; })() : undefined, status: st, firstReplyMin: src === "form" ? 1 + Math.floor(r() * 5) : 4 + Math.floor(r() * 22), touches: mkTouches(ts, st) });
+      leads.push({ id: `l_${lid++}`, at: ts, source: src, name, phone: phone(), email: `${name.split(" ")[0].toLowerCase()}.${name.split(" ")[1].toLowerCase()}@${pick(r, ["gmail.com", "outlook.com", "yahoo.com"])}`, service: wsvc(r), address: `${100 + Math.floor(r() * 8800)} ${pick(r, STREETS)}, ${pick(r, CITIES)}, WA`, via: src === "form" ? (() => { const f = pick(r, FORM_PAGES); return `${f[0]} · ${f[1]}`; })() : undefined, status: st, firstReplyMin: src === "form" ? 1 + Math.floor(r() * 5) : 4 + Math.floor(r() * 22), touches: mkTouches(ts, st) });
     }
   }
   leads.sort((a, b) => b.at - a.at);
+
+  // quiet leads get a personalized win-back message two weeks later
+  for (const l of leads) {
+    if ((l.status !== "lost" && l.status !== "contacted") || now - l.at < 15 * DAY) continue;
+    if (r() > 0.6) continue;
+    const first = l.name.split(" ")[0]; const sentAt = l.at + 14 * DAY + 10 * 3600000;
+    const x = r();
+    l.reactivation = { sentAt, message: `Hi ${first}, it's been a couple of weeks since you reached out about the ${l.service.toLowerCase()} at ${l.address.split(",")[0]}. If it still needs attention we have openings this week. If it's already sorted, reply "done" and we'll close it out.`, result: x < 0.07 ? "won" : x < 0.26 ? "replied" : "none" };
+    if (l.reactivation.result === "won") l.status = "booked";
+  }
 
   // jobs from booked leads
   const jobs: Job[] = []; let jid = 300;
@@ -200,8 +215,8 @@ export function generate(now = Date.now()): Dataset {
     if (l.status !== "booked") continue;
     const age = now - l.at;
     const status = age < 3 * DAY ? "scheduled" : age < 9 * DAY ? "in_progress" : "completed";
-    const value = r() < 0.8 ? Math.round((1800 + r() * 14000) / 50) * 50 : null;
-    jobs.push({ id: `j_${jid++}`, leadId: l.id, customer: l.name, service: l.service, address: l.address, phone: l.phone, value, status, at: l.at + 3600000 * (2 + Math.floor(r() * 20)), source: l.source });
+    const range = VALUE[l.service] || [2500, 6000]; const value = r() < 0.82 ? Math.round((range[0] + r() * (range[1] - range[0])) / 50) * 50 : null;
+    jobs.push({ id: `j_${jid++}`, leadId: l.id, customer: l.name, service: l.service, address: l.address, phone: l.phone, value, status: l.reactivation?.result === "won" ? (now - l.reactivation.sentAt < 3 * DAY ? "scheduled" : "completed") : status, at: l.reactivation?.result === "won" ? l.reactivation.sentAt + 5 * 3600000 : l.at + 3600000 * (2 + Math.floor(r() * 20)), source: l.source, reactivated: l.reactivation?.result === "won" || undefined });
   }
   jobs.sort((a, b) => b.at - a.at);
 

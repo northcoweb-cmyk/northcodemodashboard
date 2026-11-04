@@ -9,8 +9,8 @@ import { ISSUES } from "@/lib/seed";
 import { cn } from "@/lib/utils";
 import type { Call, Dataset } from "@/lib/types";
 
-const TONE: Record<string, [string, string]> = { job_booked: ["good", "Job booked"], quote_requested: ["blue", "Estimate"], transferred: ["warn", "Transferred"], info: ["mute", "Question"], spam: ["mute", "Spam"], issue: ["warn", "Needs attention"] };
-const FILTERS = [["all", "All"], ["after", "After hours"], ["jobs", "Jobs"], ["issue", "Needs attention"]] as const;
+const TONE: Record<string, [string, string]> = { job_booked: ["good", "Job booked"], quote_requested: ["blue", "Estimate"], transferred: ["warn", "Transferred"], info: ["mute", "Question"], spam: ["mute", "Spam"], issue: ["warn", "Follow-up"] };
+const FILTERS = [["all", "All"], ["after", "After hours"], ["jobs", "Jobs"], ["issue", "Follow-up"]] as const;
 
 function CallSheet({ call, onClose }: { call: Call | null; onClose: () => void }) {
   return (
@@ -30,7 +30,7 @@ function CallSheet({ call, onClose }: { call: Call | null; onClose: () => void }
               ))}
             </ol>
           </div>
-          {call.issue && <div className="rounded-xl border border-warn/25 bg-warn/[0.06] p-3.5 text-[13px]"><div className="mb-1 font-medium">What we changed because of this</div><p className="text-muted-foreground">{ISSUES[call.issue].fix}</p></div>}
+          {call.issue && <div className="rounded-xl border border-warn/25 bg-warn/[0.06] p-3.5 text-[13px]"><div className="mb-1 font-medium">How we handle this now</div><p className="text-muted-foreground">{ISSUES[call.issue].fix}</p></div>}
           <div>
             <h4 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground/70">Transcript</h4>
             <div className="flex flex-col gap-2">

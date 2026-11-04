@@ -5,7 +5,7 @@ import { ArrowUp, Sparkles } from "lucide-react";
 import { Sheet } from "@/components/ui/sheet";
 import { AgentIcon } from "@/components/agent-icon";
 import { AGENTS, agentById, type AgentId } from "@/lib/agents";
-import { useSettings } from "@/lib/store";
+import { useData, useSettings } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 interface Msg { role: "user" | "agent"; text: string; agent?: AgentId; routed?: boolean; facts?: string[] }
@@ -20,6 +20,7 @@ export const useChat = () => { const c = useContext(Ctx); if (!c) throw new Erro
 
 export function AgentChatProvider({ children }: { children: React.ReactNode }) {
   const { settings } = useSettings();
+  const { sim } = useData();
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState<AgentId>("dispatch");
   const [threads, setThreads] = useState<Record<string, Msg[]>>({});
@@ -35,13 +36,13 @@ export function AgentChatProvider({ children }: { children: React.ReactNode }) {
     setThreads((t) => ({ ...t, [to]: [...(t[to] || []), { role: "user", text: question }] }));
     setBusy(true);
     try {
-      const res = await fetch("/api/agent", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ q: question, agent: to === "dispatch" ? "auto" : to, businessName: settings.businessName, followup: settings.modules.followup.active, checkins: settings.modules.checkins.active, crewOn: settings.modules.crew.active, crew: settings.crew }) });
+      const res = await fetch("/api/agent", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ q: question, agent: to === "dispatch" ? "auto" : to, businessName: settings.businessName, followup: settings.modules.followup.active, checkins: settings.modules.checkins.active, crewOn: settings.modules.crew.active, crew: settings.crew, sim }) });
       const j = await res.json();
       setThreads((t) => ({ ...t, [to]: [...(t[to] || []), { role: "agent", text: j.text || "I couldn't answer that.", agent: j.agent as AgentId, routed: to === "dispatch" && j.agent !== "dispatch", facts: j.facts }] }));
     } catch {
       setThreads((t) => ({ ...t, [to]: [...(t[to] || []), { role: "agent", text: "Something went wrong reaching the agents. Try again in a moment.", agent: to }] }));
     } finally { setBusy(false); }
-  }, [settings.businessName, settings.modules.followup.active, settings.modules.checkins.active, settings.modules.crew.active, settings.crew]);
+  }, [settings.businessName, settings.modules.followup.active, settings.modules.checkins.active, settings.modules.crew.active, settings.crew, sim]);
 
   const value: Chat = {
     visibleAgents, nameOf,

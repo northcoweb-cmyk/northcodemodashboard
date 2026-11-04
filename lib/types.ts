@@ -71,6 +71,8 @@ export interface Lead {
   firstReplyMin: number;
   callId?: string;
   touches: Touch[];
+  /** A personalized message sent to a lead that went quiet, and how it ended. */
+  reactivation?: { sentAt: number; message: string; result: "won" | "replied" | "none" };
 }
 
 export interface Job {
@@ -84,6 +86,7 @@ export interface Job {
   status: "scheduled" | "in_progress" | "completed";
   at: number;
   source: LeadSource;
+  reactivated?: boolean;
 }
 
 export interface CheckIn {

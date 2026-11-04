@@ -22,13 +22,14 @@ function Jobs({ ds }: { ds: Dataset }) {
   const val = (j: Dataset["jobs"][number]) => vals[j.id] ?? j.value;
   const set = (id: string, raw: string) => { const n = Number(raw.replace(/[^0-9.]/g, "")); const next = { ...vals, [id]: n }; setVals(next); try { localStorage.setItem(KEY, JSON.stringify(next)); } catch {} };
   const total = ds.jobs.reduce((s, j) => s + (val(j) ?? 0), 0);
+  const valuedN = ds.jobs.filter((j) => val(j) != null).length;
   return (
     <>
       <PageTitle title="Jobs" sub="Booked work. You type in each job's value after the estimate, so these numbers are yours, not ours." />
       <div className="grid gap-4 sm:grid-cols-3">
         <Stat icon={Hammer} label="Jobs booked, 60 days" value={ds.jobs.length} explain="jobs" />
         <Stat icon={CalendarClock} label="Scheduled now" value={ds.jobs.filter((j) => j.status === "scheduled").length} explain="jobs" />
-        <Stat icon={DollarSign} label="Total job value" value={money(total)} hint="from values you entered" explain="jobs" />
+        <Stat icon={DollarSign} label="Total booked value (60 days)" value={money(total)} hint={`${valuedN} valued, avg ${money(valuedN ? total / valuedN : 0)}`} explain="jobs" />
       </div>
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
       <JobsTaskList ds={ds} title="Booked jobs" count={7} className="h-fit lg:col-span-1" />
@@ -42,10 +43,11 @@ function Jobs({ ds }: { ds: Dataset }) {
               <td className="whitespace-nowrap text-muted-foreground">{j.source === "call" ? "Phone call" : j.source === "form" ? "Website form" : "Email"}</td>
               <td><Pill tone={ST[j.status][0]}>{ST[j.status][1]}</Pill></td>
               <td className="tnum whitespace-nowrap text-muted-foreground">{when(j.at)}</td>
-              <td className="tnum whitespace-nowrap" onClick={(e) => e.stopPropagation()}><Editable value={val(j) != null ? String(val(j)) : ""} placeholder="Add value" onSave={(v) => set(j.id, v)} className="inline-block min-w-14" /></td>
+              <td className="tnum whitespace-nowrap" onClick={(e) => e.stopPropagation()}><Editable value={val(j) != null ? money(val(j) as number) : ""} placeholder="Add value" onSave={(v) => set(j.id, v)} className="inline-block min-w-14" /></td>
             </tr>
           ))}
         </Table>
+        <div className="mt-2 flex items-center justify-between border-t border-border pt-4 text-[13px]"><span className="text-muted-foreground">Total of the {Math.min(50, ds.jobs.length)} jobs shown</span><span className="tnum font-medium">{money(ds.jobs.slice(0, 50).reduce((s, j) => s + (val(j) ?? 0), 0))}</span></div>
       </Card>
       </div>
       <LeadTimelineSheet lead={sel} now={ds.now} followup={settings.modules.followup.active} onClose={() => setSel(null)} />

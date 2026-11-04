@@ -4,8 +4,8 @@ import { Eye, MailCheck, Reply, Send } from "lucide-react";
 import { useState } from "react";
 import { Gate } from "@/components/gate";
 import { LeadTimelineSheet } from "@/components/lead-timeline";
-import { Card, CardHead, PageTitle, Stat, Table, dayLabel } from "@/components/kit";
-import { summary } from "@/lib/stats";
+import { Card, CardHead, PageTitle, Pill, Stat, Table, dayLabel } from "@/components/kit";
+import { money, summary } from "@/lib/stats";
 import { cn } from "@/lib/utils";
 import type { Dataset, Lead } from "@/lib/types";
 
@@ -20,8 +20,22 @@ function FollowUps({ ds }: { ds: Dataset }) {
         <Stat icon={Send} label="Emails sent" value={s.sent} hint="last 30 days" explain="followup" />
         <Stat icon={Eye} label="Opened" value={s.openRate} unit="%" explain="followup" />
         <Stat icon={Reply} label="Replied" value={s.replyRate} unit="%" explain="followup" />
-        <Stat icon={MailCheck} label="Sequences running" value={ds.leads.filter((l) => l.status === "new" || l.status === "contacted").length} explain="followup" />
+        <Stat icon={MailCheck} label="Won back" value={money(s.wonBackValue)} hint={`${s.wonBack} jobs from quiet leads`} explain="wonback" />
       </div>
+      <Card className="mt-4">
+        <CardHead title="Win-back messages" sub="Leads that went quiet get one personal message about their actual job. Click one for the full timeline." />
+        <Table head={["Lead", "Job", "Sent", "Message", "Result"]}>
+          {ds.leads.filter((l) => l.reactivation).slice(0, 12).map((l) => (
+            <tr key={l.id} onClick={() => setSel(l)} className="cursor-pointer transition hover:bg-foreground/[0.03]">
+              <td className="whitespace-nowrap font-medium">{l.name}</td>
+              <td className="whitespace-nowrap text-muted-foreground">{l.service}</td>
+              <td className="tnum whitespace-nowrap text-muted-foreground">{dayLabel(l.reactivation!.sentAt)}</td>
+              <td className="max-w-[300px] truncate text-muted-foreground">{l.reactivation!.message}</td>
+              <td><Pill tone={l.reactivation!.result === "won" ? "good" : l.reactivation!.result === "replied" ? "blue" : "mute"}>{l.reactivation!.result === "won" ? "Won back" : l.reactivation!.result === "replied" ? "Replied" : "No reply"}</Pill></td>
+            </tr>
+          ))}
+        </Table>
+      </Card>
       <Card className="mt-4" explain="followup">
         <CardHead title="Sequence by lead" sub="Each dot is one email. Click a lead for the full timeline." />
         <Table head={["Lead", "Started", "Instant reply", "Next-day", "Day 4", "Status"]}>

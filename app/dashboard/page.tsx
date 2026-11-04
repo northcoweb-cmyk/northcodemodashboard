@@ -11,6 +11,7 @@ import { byHour, delta, issueRows, money, outcomes, perDay, sources, summary } f
 import { dayLabel } from "@/components/kit";
 import { cn } from "@/lib/utils";
 import { JobsTaskList } from "@/components/jobs-tasks";
+import { ImprovementsCard } from "@/components/improvements-card";
 import type { Dataset } from "@/lib/types";
 
 function Overview({ ds }: { ds: Dataset }) {
@@ -39,9 +40,9 @@ function Overview({ ds }: { ds: Dataset }) {
         <Stat icon={Users} label="Leads captured" value={s.leadCount} delta={delta(s.leadCount, s.prevLeads)} hint="vs previous 30 days" explain="leads" />
         <Stat icon={Timer} label="Time to first reply" value={s.avgFirstReply} unit="min" hint="average, all sources" explain="reply" />
         <Stat icon={Hammer} label="Jobs booked" value={s.jobsBooked} delta={delta(s.jobsBooked, s.prevJobs)} hint="vs previous 30 days" explain="jobs" />
-        <Stat icon={DollarSign} label="Booked job value" value={money(s.pipelineValue)} hint={`${s.valued} of ${s.jobsBooked} jobs valued by you`} explain="jobs" />
+        <Stat icon={DollarSign} label="Booked job value (30 days)" value={money(s.pipelineValue)} hint={`${s.valued} of ${s.jobsBooked} jobs valued by you · avg ${money(s.avgJob)}`} explain="jobs" />
         {m.followup.active && <Stat icon={MailCheck} label="Follow-up reply rate" value={s.replyRate} unit="%" hint={`${s.openRate}% opened`} explain="followup" />}
-        <Stat icon={Clock} label="Average call" value={dur(s.avgDuration)} hint={`${s.transfers} transferred to you`} explain="duration" />
+        <Stat icon={Clock} label="Won back from quiet leads" value={money(s.wonBackValue)} hint={`${s.wonBack} jobs from win-back messages`} explain="wonback" />
       </div>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
@@ -88,25 +89,7 @@ function Overview({ ds }: { ds: Dataset }) {
         </Card>
       </div>
 
-      <Card className="mt-4" explain="issues">
-        <CardHead title="Issues we caught and fixed" sub="Every call that didn't go cleanly is labeled. Each pattern gets a fix, and the before and after rates come from your own call history." />
-        <div className="overflow-x-auto no-scrollbar">
-          <table className="w-full min-w-[720px] text-left text-[13px]">
-            <thead><tr className="border-b border-border text-xs text-muted-foreground">{["What happened", "Calls", "Recovered", "Rate before → after", "What we changed"].map((h) => <th key={h} className="px-3 py-2.5 font-normal first:pl-0 last:pr-0">{h}</th>)}</tr></thead>
-            <tbody>
-              {issues.map((r) => (
-                <tr key={r.key} className="border-b border-border/60 align-top last:border-0">
-                  <td className="py-3.5 pr-3 font-medium">{r.title}</td>
-                  <td className="tnum px-3 py-3.5">{r.count}</td>
-                  <td className="tnum px-3 py-3.5">{r.recovered}</td>
-                  <td className="whitespace-nowrap px-3 py-3.5"><span className="tnum text-muted-foreground">{r.rateBefore}%</span> <span className="text-muted-foreground">→</span> <span className="tnum text-good">{r.rateAfter}%</span></td>
-                  <td className="max-w-[360px] py-3.5 pl-3 text-muted-foreground"><span className="mb-1 block text-[11px] text-foreground/70">{dayLabel(r.fix.at)}</span>{r.fix.change}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+      <div className="mt-4"><ImprovementsCard ds={ds} /></div>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2" explain="heatmap"><CardHead title="When calls come in" sub="By day and hour, last 30 days" /><Heatmap grid={byHour(ds, 30)} /></Card>

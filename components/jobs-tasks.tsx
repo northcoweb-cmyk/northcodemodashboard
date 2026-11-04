@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import TaskLists, { type TaskItem } from "@/components/ui/task-list";
 import { crewFor } from "@/lib/dispatch";
 import { useSettings } from "@/lib/store";
+import { money } from "@/lib/stats";
 import type { Dataset } from "@/lib/types";
 
 const KEY = "nc_tasks_done_v1";
@@ -21,7 +22,7 @@ export function JobsTaskList({ ds, title = "Booked jobs", count = 6, className }
     const badge = age < 1 ? { text: "Today", color: "bg-error text-white" } : age < 2 ? { text: "Yesterday", color: "bg-foreground text-background" } : { text: `${age} days ago`, color: "bg-secondary text-secondary-foreground" };
     return {
       id: j.id, title: `${j.service} · ${j.address.split(",")[0]}`, badge, done: j.status === "completed" || !!done[j.id],
-      date: new Date(j.at).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric", timeZone: "America/Los_Angeles" }),
+      date: `${new Date(j.at).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric", timeZone: "America/Los_Angeles" })}${j.value != null ? ` · ${money(j.value)}` : ""}`,
       avatars: settings.modules.crew.active ? crewFor(j, settings.crew).map((c) => ({ name: c.name, color: c.color })) : undefined,
     };
   });

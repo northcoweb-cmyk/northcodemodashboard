@@ -1,5 +1,5 @@
 import type { Dataset, IssueKey } from "./types";
-import { ISSUES } from "./seed";
+import { IMPROVEMENT_NAMES, ISSUES } from "./seed";
 
 const DAY = 86400000;
 export const within = (ds: Dataset, days: number, offset = 0) => (t: number) => t >= ds.now - (days + offset) * DAY && t < ds.now - offset * DAY;
@@ -28,6 +28,9 @@ export function summary(ds: Dataset, days = 30, offset = 0) {
     formLeads: leads.filter((l) => l.source === "form").length,
     jobsBooked: jobs.length, prevJobs: pjobs.length,
     pipelineValue: jobs.reduce((s, j) => s + (j.value ?? 0), 0),
+    avgJob: jobs.filter((j) => j.value != null).length ? Math.round(jobs.reduce((s, j) => s + (j.value ?? 0), 0) / jobs.filter((j) => j.value != null).length) : 0,
+    wonBack: jobs.filter((j) => j.reactivated).length,
+    wonBackValue: jobs.filter((j) => j.reactivated).reduce((s, j) => s + (j.value ?? 0), 0),
     valued: jobs.filter((j) => j.value != null).length,
     sent, opened, replied, openRate: pct(opened, sent), replyRate: pct(replied, sent),
     issues: issues.length, recovered: issues.filter((c) => c.recovered).length,
@@ -52,7 +55,7 @@ export function outcomes(ds: Dataset, days = 30) {
     { key: "quote_requested", label: "Estimate requested", n: count((c) => c.outcome === "quote_requested") },
     { key: "transferred", label: "Transferred to owner", n: count((c) => c.outcome === "transferred") },
     { key: "info", label: "Question answered", n: count((c) => c.outcome === "info") },
-    { key: "issue", label: "Needed attention", n: count((c) => c.outcome === "issue") },
+    { key: "issue", label: "Follow-up needed", n: count((c) => c.outcome === "issue") },
     { key: "spam", label: "Spam filtered", n: count((c) => c.outcome === "spam") },
   ];
 }
@@ -78,9 +81,15 @@ export function issueRows(ds: Dataset) {
     const before = ds.calls.filter((c) => c.at < fix.at), after = ds.calls.filter((c) => c.at >= fix.at);
     const rb = pct(before.filter((c) => c.issue === k).length * 10, before.length) / 10;
     const ra = pct(after.filter((c) => c.issue === k).length * 10, after.length) / 10;
-    return { key: k, ...ISSUES[k], count: all.length, recovered: all.filter((c) => c.recovered).length, fix, rateBefore: rb, rateAfter: ra };
+    return { key: k, ...ISSUES[k], name: IMPROVEMENT_NAMES[k], count: all.length, recovered: all.filter((c) => c.recovered).length, fix, rateBefore: rb, rateAfter: ra };
   }).sort((a, b) => b.count - a.count);
 }
 
 export const money = (n: number) => "$" + Math.round(n).toLocaleString("en-US");
 export const delta = (cur: number, prev: number) => (prev ? Math.round(((cur - prev) / prev) * 100) : 0);
+
+export function jobsByService(ds: Dataset, days = 30) {
+  const m = new Map<string, { n: number; value: number }>();
+  ds.jobs.filter((j) => within(ds, days)(j.at)).forEach((j) => { const e = m.get(j.service) || { n: 0, value: 0 }; e.n++; e.value += j.value ?? 0; m.set(j.service, e); });
+  return [...m.entries()].map(([label, v]) => ({ label, ...v })).sort((a, b) => b.value - a.value);
+}

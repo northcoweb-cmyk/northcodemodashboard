@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, MotionConfig } from "framer-motion";
-import { Bell, CheckCheck, FileInput, Hourglass, Mail, MailOpen, Reply, RotateCcw, UserPlus } from "lucide-react";
+import { Bell, CheckCheck, FileInput, Hourglass, Mail, MailOpen, RefreshCw, Reply, RotateCcw, UserPlus } from "lucide-react";
 import { Sheet } from "@/components/ui/sheet";
 import { Pill, when } from "@/components/kit";
 import { cn } from "@/lib/utils";
@@ -36,7 +36,11 @@ function stepsFor(lead: Lead, now: number, followup: boolean): Step[] {
       else out.push({ key: `t${d.n}`, icon: Hourglass, title: d.title, at: due, state: "pending", detail: due > now ? "Scheduled. It sends automatically unless they reply or book." : "Due now.", msg: d.msg });
     }
   }
-  const endLabel = lead.status === "booked" ? ["Job booked", "Booked and sent to your crew."] : lead.status === "replied" ? ["They replied", "A person takes over from here."] : lead.status === "lost" ? ["Closed", "No reply after the full sequence."] : ["In progress", "Waiting on their reply."];
+  if (lead.reactivation && followup) {
+    const ra = lead.reactivation;
+    out.push({ key: "react", icon: RefreshCw, title: "Win-back message sent", at: ra.sentAt, state: "done", detail: ra.result === "won" ? "They answered and booked the job." : ra.result === "replied" ? "They replied, so a person picked it up." : "No reply. The lead is closed out.", msg: { subject: `Still need help with the ${lead.service.toLowerCase()}?`, body: ra.message }, badges: [[ra.result === "won" ? "Won back" : ra.result === "replied" ? "Replied" : "No reply", ra.result === "won" ? "good" : ra.result === "replied" ? "blue" : "mute"]] });
+  }
+  const endLabel = lead.reactivation?.result === "won" ? ["Won back", "Booked after the win-back message."] : lead.status === "booked" ? ["Job booked", "Booked and sent to your crew."] : lead.status === "replied" ? ["They replied", "A person takes over from here."] : lead.status === "lost" ? ["Closed", "No reply after the full sequence."] : ["In progress", "Waiting on their reply."];
   out.push({ key: "end", icon: lead.status === "booked" ? CheckCheck : Bell, title: endLabel[0], at: 0, state: lead.status === "new" || lead.status === "contacted" ? "pending" : "done", detail: endLabel[1] });
   return out;
 }

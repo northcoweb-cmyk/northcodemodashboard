@@ -5,7 +5,7 @@ import { Printer } from "lucide-react";
 import { Gate } from "@/components/gate";
 import { BarList } from "@/components/ui/charts";
 import { dayLabel } from "@/components/kit";
-import { delta, issueRows, money, outcomes, summary } from "@/lib/stats";
+import { delta, issueRows, jobsByService, money, outcomes, summary } from "@/lib/stats";
 import { useSettings } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import type { Dataset } from "@/lib/types";
@@ -26,7 +26,7 @@ function Reports({ ds }: { ds: Dataset }) {
   const issues = issueRows(ds);
   const busiest = (() => { const m = new Map<string, number>(); s.calls.forEach((c) => { const k = dayLabel(c.at); m.set(k, (m.get(k) || 0) + 1); }); return [...m.entries()].sort((a, b) => b[1] - a[1])[0]; })();
   const within5 = s.leads.length ? Math.round((s.leads.filter((l) => l.firstReplyMin <= 5).length / s.leads.length) * 100) : 0;
-  const byService = Object.entries(s.jobs.reduce<Record<string, number>>((m, j) => { m[j.service] = (m[j.service] || 0) + 1; return m; }, {})).map(([label, n]) => ({ label, n })).sort((a, b) => b.n - a.n);
+  const byService = jobsByService(ds, days).map((x) => ({ label: `${x.label} (${x.n})`, n: x.value, display: money(x.value) }));
   const rows: { l: string; a: number; b: number; fmt?: (n: number) => string; low?: boolean }[] = [
     { l: "Calls answered", a: s.answered, b: p.answered },
     { l: "After-hours calls", a: s.afterHours, b: p.afterHours },
@@ -34,13 +34,15 @@ function Reports({ ds }: { ds: Dataset }) {
     { l: "First reply (minutes)", a: s.avgFirstReply, b: p.avgFirstReply, low: true },
     ...(settings.modules.followup.active ? [{ l: "Follow-up reply rate", a: s.replyRate, b: p.replyRate, fmt: (n: number) => `${n}%` }] : []),
     { l: "Jobs booked", a: s.jobsBooked, b: p.jobsBooked },
-    { l: "Calls needing attention", a: s.issues, b: p.issues, low: true },
+    { l: "Booked job value", a: s.pipelineValue, b: p.pipelineValue, fmt: money },
+    { l: "Won back from quiet leads", a: s.wonBackValue, b: p.wonBackValue, fmt: money },
+    { l: "Calls needing follow-up", a: s.issues, b: p.issues, low: true },
   ];
   const notes = [
     `${s.answered} calls were answered, ${s.afterHours} of them after hours (${s.afterHoursPct}%).${busiest ? ` The busiest day was ${busiest[0]} with ${busiest[1]} calls.` : ""}`,
     `New leads got a first reply in ${s.avgFirstReply} minutes on average, and ${within5}% were answered within 5 minutes.`,
     `${s.jobsBooked} jobs were booked${s.valued ? `. The ${s.valued} you've valued total ${money(s.pipelineValue)}` : ""}.`,
-    s.issues ? `${s.issues} calls needed attention and ${s.recovered} were recovered as leads.` : "No calls needed attention.",
+    s.issues ? `${s.issues} calls needed a follow-up and ${s.recovered} were recovered as leads.` : "No calls needed a follow-up.",
   ];
   return (
     <div className="mx-auto max-w-3xl print:max-w-none">
@@ -53,7 +55,7 @@ function Reports({ ds }: { ds: Dataset }) {
       </div>
 
       <div className="grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-border bg-border sm:grid-cols-4">
-        {[["Calls", String(s.answered)], ["Leads", String(s.leadCount)], ["Jobs booked", String(s.jobsBooked)], ["First reply", `${s.avgFirstReply} min`]].map(([l, v]) => <div key={l} className="bg-card p-5"><div className="text-xs text-muted-foreground">{l}</div><div className="tnum mt-2 text-[26px] font-medium leading-none tracking-tight">{v}</div></div>)}
+        {[["Calls", String(s.answered)], ["Leads", String(s.leadCount)], ["Job value", money(s.pipelineValue)], ["First reply", `${s.avgFirstReply} min`]].map(([l, v]) => <div key={l} className="bg-card p-5"><div className="text-xs text-muted-foreground">{l}</div><div className="tnum mt-2 text-[26px] font-medium leading-none tracking-tight">{v}</div></div>)}
       </div>
 
       <section className="mt-10">
@@ -71,12 +73,12 @@ function Reports({ ds }: { ds: Dataset }) {
 
       <div className="mt-10 grid gap-10 sm:grid-cols-2">
         <section><h2 className="mb-4 text-[13px] font-medium">How calls ended</h2><BarList rows={outcomes(ds, days).map((o) => ({ label: o.label, n: o.n, tone: o.key === "issue" ? "#b9770e" : undefined }))} /></section>
-        <section><h2 className="mb-4 text-[13px] font-medium">Jobs by service</h2>{byService.length ? <BarList rows={byService} color="#12935f" /> : <p className="text-sm text-muted-foreground">No jobs booked in this period.</p>}</section>
+        <section><h2 className="mb-4 text-[13px] font-medium">Booked value by service <span className="text-muted-foreground">· total {money(s.pipelineValue)}</span></h2>{byService.length ? <BarList rows={byService} color="#12935f" /> : <p className="text-sm text-muted-foreground">No jobs booked in this period.</p>}</section>
       </div>
 
       <section className="mt-10">
-        <h2 className="text-[13px] font-medium">Fixes in place</h2>
-        <ul className="mt-3 divide-y divide-border/60">{issues.map((r) => <li key={r.key} className="flex items-center justify-between gap-4 py-3 text-[13px]"><span>{r.title}</span><span className="tnum shrink-0 text-muted-foreground">{r.rateBefore}% <span className="px-1">→</span> <span className="text-good">{r.rateAfter}%</span></span></li>)}</ul>
+        <h2 className="text-[13px] font-medium">Improvements shipped</h2>
+        <ul className="mt-3 divide-y divide-border/60">{issues.map((r) => <li key={r.key} className="flex items-center justify-between gap-4 py-3 text-[13px]"><span>{r.name}</span><span className="tnum shrink-0 text-muted-foreground">{r.rateBefore}% <span className="px-1">→</span> <span className="text-good">{r.rateAfter}%</span></span></li>)}</ul>
       </section>
 
       <p className="mt-12 border-t border-border pt-5 text-xs text-muted-foreground print:mt-6">This report is emailed to {settings.alertEmail} every Saturday at 8am.</p>

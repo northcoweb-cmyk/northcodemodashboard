@@ -37,14 +37,14 @@ export function AreaChart({ points, height = 160 }: { points: { label: string; t
   );
 }
 
-export function BarList({ rows, color = "var(--foreground)" }: { rows: { label: string; n: number; tone?: string }[]; color?: string }) {
+export function BarList({ rows, color = "var(--foreground)" }: { rows: { label: string; n: number; tone?: string; display?: string }[]; color?: string }) {
   const max = Math.max(1, ...rows.map((r) => r.n));
   return (
     <ul className="flex flex-col gap-3">
       {rows.map((r) => (
         <li key={r.label} className="grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1.5">
           <span className="truncate text-[13px] text-foreground/90">{r.label}</span>
-          <span className="tnum text-[13px] text-muted-foreground">{r.n}</span>
+          <span className="tnum text-[13px] text-muted-foreground">{r.display ?? r.n}</span>
           <span className="col-span-2 h-1.5 overflow-hidden rounded-full bg-foreground/[0.06]"><span className="block h-full rounded-full" style={{ width: `${(r.n / max) * 100}%`, background: r.tone || color }} /></span>
         </li>
       ))}
