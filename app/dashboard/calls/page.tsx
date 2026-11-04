@@ -10,7 +10,8 @@ import { ISSUES } from "@/lib/seed";
 import { cn } from "@/lib/utils";
 import type { Call, Dataset } from "@/lib/types";
 
-const TONE: Record<string, [string, string]> = { job_booked: ["good", "Job booked"], quote_requested: ["blue", "Estimate"], transferred: ["warn", "Transferred"], info: ["mute", "Question"], spam: ["mute", "Spam"], issue: ["warn", "Follow-up"] };
+const TONE: Record<string, [string, string]> = { job_booked: ["good", "Job booked"], quote_requested: ["blue", "Estimate"], transferred: ["warn", "Transferred"], info: ["mute", "Question"], spam: ["mute", "Spam"], issue: ["warn", "Follow-up"], missed: ["mute", "Line busy"] };
+const tone = (o: string): [string, string] => TONE[o] ?? ["mute", o.replace("_", " ")];
 const FILTERS = [["all", "All"], ["after", "After hours"], ["jobs", "Jobs"], ["issue", "Follow-up"]] as const;
 
 function CallSheet({ call, onClose }: { call: Call | null; onClose: () => void }) {
@@ -18,7 +19,7 @@ function CallSheet({ call, onClose }: { call: Call | null; onClose: () => void }
     <Sheet open={!!call} onOpenChange={(o) => !o && onClose()} title={call?.name ?? ""} description={call ? `${when(call.at)} · ${dur(call.durationSec)} · ${call.phone}` : ""} width="max-w-lg">
       {call && (
         <div className="flex flex-col gap-6">
-          <div className="flex flex-wrap gap-2"><Pill tone={TONE[call.outcome][0]}>{TONE[call.outcome][1]}</Pill>{call.afterHours && <Pill tone="blue">After hours</Pill>}{call.issue && <Pill tone="warn">{ISSUES[call.issue].short}</Pill>}{call.recovered && <Pill tone="good">Recovered as lead</Pill>}</div>
+          <div className="flex flex-wrap gap-2"><Pill tone={tone(call.outcome)[0]}>{tone(call.outcome)[1]}</Pill>{call.afterHours && <Pill tone="blue">After hours</Pill>}{call.issue && <Pill tone="warn">{ISSUES[call.issue].short}</Pill>}{call.recovered && <Pill tone="good">Recovered as lead</Pill>}</div>
           <p className="text-[13px] leading-relaxed text-muted-foreground">{call.summary}</p>
           <div>
             <h4 className="mb-3 text-xs font-medium uppercase tracking-wider text-muted-foreground/70">How it was handled</h4>
@@ -61,7 +62,7 @@ function Calls({ ds }: { ds: Dataset }) {
               <td className="whitespace-nowrap font-medium">{c.name}</td>
               <td className="tnum whitespace-nowrap text-muted-foreground">{when(c.at)}{c.afterHours && <span className="ml-1.5 text-blue">●</span>}</td>
               <td className="tnum whitespace-nowrap text-muted-foreground">{dur(c.durationSec)}</td>
-              <td><Pill tone={TONE[c.outcome][0]}>{TONE[c.outcome][1]}</Pill></td>
+              <td><Pill tone={tone(c.outcome)[0]}>{tone(c.outcome)[1]}</Pill></td>
               <td className="max-w-[320px] truncate text-muted-foreground">{c.summary}</td>
             </tr>
           ))}
