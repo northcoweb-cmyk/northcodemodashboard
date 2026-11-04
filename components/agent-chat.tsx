@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { ArrowUp, Sparkles } from "lucide-react";
 import { Sheet } from "@/components/ui/sheet";
-import { LiveOrb } from "@/components/ui/live-orb";
+import { AgentIcon } from "@/components/agent-icon";
 import { AGENTS, agentById, type AgentId } from "@/lib/agents";
 import { useSettings } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -67,7 +67,7 @@ export function AgentChatProvider({ children }: { children: React.ReactNode }) {
           </div>
           <div className="flex flex-1 flex-col gap-4 overflow-y-auto no-scrollbar px-5 py-5">
             <div className="flex flex-col items-center gap-3 py-2 text-center">
-              <LiveOrb key={active} size={84} variant="custom" color={def.color} eyeColor="#060607" />
+              <AgentIcon key={active} color={def.color} size={96} />
               <div><div className="text-sm font-medium">{nameOf(active)}</div><p className="mx-auto mt-1 max-w-[300px] text-xs leading-relaxed text-muted-foreground">{def.blurb}</p></div>
             </div>
             {!msgs.length && (

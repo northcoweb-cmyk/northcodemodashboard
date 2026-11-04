@@ -4,7 +4,7 @@ import { createContext, useContext, useState } from "react";
 import { Sheet } from "@/components/ui/sheet";
 import { EXPLAIN } from "@/lib/explain";
 import { agentById } from "@/lib/agents";
-import { LiveOrb } from "@/components/ui/live-orb";
+import { AgentIcon } from "@/components/agent-icon";
 import { useSettings } from "@/lib/store";
 
 const Ctx = createContext<{ show: (k: string) => void; enabled: boolean }>({ show: () => {}, enabled: false });
@@ -22,7 +22,7 @@ export function ExplainProvider({ children }: { children: React.ReactNode }) {
         {info && agent && (
           <div className="flex flex-col gap-6">
             <div className="flex items-center gap-3 rounded-xl border border-border bg-card p-3">
-              <LiveOrb size={36} variant="custom" color={agent.color} eyeColor="#060607" interactive={false} />
+              <AgentIcon color={agent.color} size={40} />
               <div className="min-w-0"><div className="text-sm font-medium">{settings.agentNames[agent.id] || agent.name}</div><div className="text-xs text-muted-foreground">{agent.role}</div></div>
             </div>
             <ol className="relative flex flex-col gap-5 pl-7 before:absolute before:bottom-2 before:left-[9px] before:top-2 before:w-px before:bg-border">

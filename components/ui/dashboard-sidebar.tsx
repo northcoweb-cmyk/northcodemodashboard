@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { ChevronDown } from "lucide-react";
 import { Editable } from "@/components/ui/editable";
-import { LiveOrb } from "@/components/ui/live-orb";
+import { AgentIcon } from "@/components/agent-icon";
 import { cn } from "@/lib/utils";
 
 export type NavItemData = {
@@ -24,7 +24,7 @@ function NavItem({ item, activeId }: { item: NavItemData; activeId: string }) {
     <>
       <div className="flex min-w-0 items-center gap-2.5">
         {item.orb ? (
-          <span className="flex size-4 items-center justify-center"><LiveOrb size={20} variant="custom" color={item.orb} eyeColor="#060607" interactive={false} blink={false} className="-m-0.5" /></span>
+          <span className="flex h-4 w-4 items-center justify-center overflow-visible"><AgentIcon color={item.orb} size={20} bob={false} /></span>
         ) : item.icon ? (
           <item.icon className={cn("size-4 shrink-0 transition-colors", active ? "text-foreground" : "text-muted-foreground/70 group-hover:text-foreground/70")} strokeWidth={1.5} />
         ) : null}
