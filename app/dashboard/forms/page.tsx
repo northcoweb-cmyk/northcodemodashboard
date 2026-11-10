@@ -6,26 +6,44 @@ import { Gate } from "@/components/gate";
 import { Card, CardHead, PageTitle, Pill, Stat, Table, when } from "@/components/kit";
 import { BarList } from "@/components/ui/charts";
 import { LeadTimelineSheet } from "@/components/lead-timeline";
-import { useSettings } from "@/lib/store";
+import { useData, useSettings } from "@/lib/store";
+import { simulateForm } from "@/lib/sim";
+import { SERVICES } from "@/lib/messages";
 import { summary } from "@/lib/stats";
 import type { Dataset, Lead } from "@/lib/types";
 
 function Forms({ ds }: { ds: Dataset }) {
   const { settings } = useSettings();
   const [sel, setSel] = useState<Lead | null>(null);
+  const { simulate } = useData();
+  const [t, setT] = useState({ name: "Alex Morgan", email: "alex.morgan@example.com", phone: "(240) 555-0200", vehicle: "Porsche Taycan Turbo", service: "Paint protection film", source: "form" as "form" | "gbp" });
+  const send = () => { const sim = simulateForm({ name: t.name, email: t.email, phone: t.phone, vehicle: t.vehicle, service: t.service, source: t.source, address: "1840 Diamond Ave, Gaithersburg, MD" }); simulate(sim); setSel(sim.leads[0]); };
+  const inp = "w-full rounded-md border border-border bg-transparent px-2.5 py-1.5 text-[13px] outline-none focus:border-foreground/40";
   const s = summary(ds, 30);
-  const fl = ds.leads.filter((l) => l.source === "form");
+  const fl = ds.leads.filter((l) => l.source === "form" || l.source === "gbp");
   const f30 = fl.filter((l) => l.at > ds.now - 30 * 86400000);
   const avg = f30.length ? Math.round((f30.reduce((a, l) => a + l.firstReplyMin, 0) / f30.length) * 10) / 10 : 0;
   const pages = Object.entries(f30.reduce<Record<string, number>>((m, l) => { const k = l.via || "Website form"; m[k] = (m[k] || 0) + 1; return m; }, {})).map(([label, n]) => ({ label, n })).sort((a, b) => b.n - a.n);
   return (
     <>
-      <PageTitle title="Website forms" sub="When someone fills out a form on your site, they get a reply in minutes and you get the details. Click a submission to see the whole timeline." />
+      <PageTitle title="Website forms & Google leads" sub="When someone fills out a form on your site or messages your Google listing, they get a personal reply within minutes and you get the details. If they go quiet, the follow-ups keep going. Click a submission to see the whole timeline." />
       <div className="grid gap-4 sm:grid-cols-3">
         <Stat icon={FileInput} label="Form leads, 30 days" value={s.formLeads} explain="leads" />
         <Stat icon={Timer} label="Average first reply" value={avg} unit="min" explain="reply" />
         <Stat icon={Zap} label="Replied within 5 min" value={f30.length ? Math.round((f30.filter((l) => l.firstReplyMin <= 5).length / f30.length) * 100) : 0} unit="%" explain="reply" />
       </div>
+      <Card className="mt-4">
+        <CardHead title="Try it live" sub="Send a test quote request and watch what happens next" />
+        <div className="grid gap-3 sm:grid-cols-3">
+          <input className={inp} value={t.name} onChange={(e) => setT({ ...t, name: e.target.value })} placeholder="Name" />
+          <input className={inp} value={t.email} onChange={(e) => setT({ ...t, email: e.target.value })} placeholder="Email" />
+          <input className={inp} value={t.phone} onChange={(e) => setT({ ...t, phone: e.target.value })} placeholder="Phone" />
+          <input className={inp} value={t.vehicle} onChange={(e) => setT({ ...t, vehicle: e.target.value })} placeholder="Car" />
+          <select className={inp} value={t.service} onChange={(e) => setT({ ...t, service: e.target.value })}>{SERVICES.map((x) => <option key={x}>{x}</option>)}</select>
+          <select className={inp} value={t.source} onChange={(e) => setT({ ...t, source: e.target.value as "form" | "gbp" })}><option value="form">Website quote form</option><option value="gbp">Google Business Profile message</option></select>
+        </div>
+        <button onClick={send} className="mt-3 rounded-md bg-foreground px-3.5 py-2 text-[13px] font-medium text-background">Send test quote request</button>
+      </Card>
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHead title="Recent submissions" sub="Where each person reached out from, and what happened next" />
@@ -47,7 +65,7 @@ function Forms({ ds }: { ds: Dataset }) {
           <Card>
             <CardHead title="How it connects" />
             <ul className="flex flex-col gap-3 text-[13px]">
-              {["Your site's form sends us the submission", "A lead is created with name, phone and service", "An email goes to the person right away", "You get the job alert with their details", "The follow-up sequence takes over"].map((t) => <li key={t} className="flex gap-2.5"><Check className="mt-0.5 size-4 shrink-0 text-good" strokeWidth={2} /><span className="text-muted-foreground">{t}</span></li>)}
+              {["Your site form or Google listing sends us the message", "A lead is created with name, phone, car and service", "A personal email goes to them within minutes, naming their car and what they asked for", "You get the lead alert with their details", "If they don't book, the follow-ups keep going and stop the moment they reply"].map((t) => <li key={t} className="flex gap-2.5"><Check className="mt-0.5 size-4 shrink-0 text-good" strokeWidth={2} /><span className="text-muted-foreground">{t}</span></li>)}
             </ul>
           </Card>
         </div>

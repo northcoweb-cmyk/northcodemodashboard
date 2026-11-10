@@ -44,7 +44,7 @@ export function SidebarNav({ className = "", groups, bottom, activeId, businessN
   return (
     <div className={cn("flex h-full w-[260px] flex-col border-r border-border bg-card/50 p-3", className)}>
       <div className="mb-4 flex items-center gap-3 px-2 py-2">
-        <div onClick={onLogoTap} className="flex size-8 shrink-0 select-none items-center justify-center rounded-md bg-primary text-[13px] font-semibold text-primary-foreground shadow-sm">{businessName.charAt(0)}</div>
+        <div onClick={onLogoTap} className="flex h-9 w-[76px] shrink-0 select-none items-center justify-center rounded-md bg-black px-1.5 shadow-sm"><img src="/mpd/MPD-Logo.png" alt="" className="h-full w-full object-contain" /></div>
         <div className="flex min-w-0 flex-col">
           <Editable value={businessName} onSave={onBusinessName} className="mb-1 block truncate text-[13px] font-medium leading-none" />
           <Editable value={plan} onSave={onPlan} className="block truncate text-[11px] leading-none text-muted-foreground" />

@@ -27,7 +27,7 @@ function Jobs({ ds }: { ds: Dataset }) {
   const valuedN = ds.jobs.filter((j) => val(j) != null).length;
   return (
     <>
-      <PageTitle title="Jobs" sub="Booked work. Click a job for the customer, crew and how it got booked. Values are the ones you enter." />
+      <PageTitle title="Estimates & jobs" sub="Booked estimates and work. Click one for the customer, the car and how it got booked. Values are the ones you enter." />
       <div className="grid gap-4 sm:grid-cols-3">
         <Stat icon={Hammer} label="Jobs booked, 60 days" value={ds.jobs.length} explain="jobs" />
         <Stat icon={CalendarClock} label="Scheduled now" value={ds.jobs.filter((j) => j.status === "scheduled").length} explain="jobs" />

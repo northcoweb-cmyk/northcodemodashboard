@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { Activity, ArrowUp, BarChart3, CalendarDays, HardHat, Moon, Sun, FileInput, Hammer, LayoutDashboard, LogOut, MailCheck, Menu, PhoneCall, PhoneOutgoing, Settings as Cog, Users } from "lucide-react";
+import { Activity, ArrowUp, BarChart3, CalendarDays, HardHat, Moon, Sun, FileInput, Hammer, LayoutDashboard, LogOut, MailCheck, RefreshCw, Menu, PhoneCall, PhoneOutgoing, Settings as Cog, Users } from "lucide-react";
 import { SidebarNav, type NavGroupData } from "@/components/ui/dashboard-sidebar";
 import { AgentIcon } from "@/components/agent-icon";
 import { agentById } from "@/lib/agents";
@@ -14,7 +14,7 @@ import { ExplainProvider } from "@/components/explain-provider";
 import { DataProvider, SettingsProvider, useSettings } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
-const TITLES: Record<string, string> = { "/dashboard": "Overview", "/dashboard/calls": "Calls", "/dashboard/leads": "Leads", "/dashboard/follow-ups": "Follow-ups", "/dashboard/jobs": "Jobs", "/dashboard/crew": "Crew", "/dashboard/activity": "Activity", "/dashboard/schedule": "Schedule", "/dashboard/reports": "Reports", "/dashboard/forms": "Website forms", "/dashboard/check-ins": "Check-in calls", "/dashboard/settings": "Settings" };
+const TITLES: Record<string, string> = { "/dashboard": "Overview", "/dashboard/calls": "Calls", "/dashboard/leads": "Leads", "/dashboard/follow-ups": "Follow-ups", "/dashboard/jobs": "Estimates & jobs", "/dashboard/reactivation": "Old estimates", "/dashboard/crew": "Crew", "/dashboard/activity": "Activity", "/dashboard/schedule": "Schedule", "/dashboard/reports": "Reports", "/dashboard/forms": "Website forms", "/dashboard/check-ins": "Check-in calls", "/dashboard/settings": "Settings" };
 
 function Shell({ children }: { children: React.ReactNode }) {
   const path = usePathname(); const router = useRouter();
@@ -43,10 +43,11 @@ function Shell({ children }: { children: React.ReactNode }) {
       { id: "/dashboard/leads", title: "Leads", icon: Users, href: "/dashboard/leads" },
       ...(m.followup.sidebar ? [{ id: "/dashboard/follow-ups", title: "Follow-ups", icon: MailCheck, href: "/dashboard/follow-ups" }] : []),
       ...(m.forms.sidebar ? [{ id: "/dashboard/forms", title: "Website forms", icon: FileInput, href: "/dashboard/forms" }] : []),
+      { id: "/dashboard/reactivation", title: "Old estimates", icon: RefreshCw, href: "/dashboard/reactivation" },
       ...(m.checkins.sidebar ? [{ id: "/dashboard/check-ins", title: "Check-in calls", icon: PhoneOutgoing, href: "/dashboard/check-ins" }] : []),
     ] },
     { heading: "Work", items: [
-      { id: "/dashboard/jobs", title: "Jobs", icon: Hammer, href: "/dashboard/jobs" },
+      { id: "/dashboard/jobs", title: "Estimates & jobs", icon: Hammer, href: "/dashboard/jobs" },
       { id: "/dashboard/schedule", title: "Schedule", icon: CalendarDays, href: "/dashboard/schedule" },
       ...(m.crew.sidebar ? [{ id: "/dashboard/crew", title: "Crew", icon: HardHat, href: "/dashboard/crew" }] : []),
       { id: "/dashboard/reports", title: "Reports", icon: BarChart3, href: "/dashboard/reports" },
@@ -67,7 +68,7 @@ function Shell({ children }: { children: React.ReactNode }) {
         <header className="flex print:hidden h-14 shrink-0 items-center gap-3 border-b border-border px-4 sm:px-6">
           <button className="rounded-md p-1.5 text-muted-foreground hover:bg-foreground/5 md:hidden" onClick={() => setMobile(true)} aria-label="Menu"><Menu className="size-5" strokeWidth={1.5} /></button>
           <div className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground"><span className="truncate">{settings.businessName}</span><span>/</span><span className="truncate font-medium text-foreground">{TITLES[path] || "Dashboard"}</span></div>
-          <div className="ml-auto flex items-center gap-3 text-xs text-muted-foreground"><select value={settings.location} onChange={(e) => update({ location: e.target.value })} aria-label="Location" className="hidden rounded-md border border-border bg-transparent px-2 py-1 text-xs text-foreground outline-none sm:block"><option value="all">All locations</option>{LOCATIONS.map((l) => <option key={l.name} value={l.name}>{l.name}</option>)}</select><button onClick={flip} aria-label="Toggle theme" className="rounded-md p-1.5 transition hover:bg-foreground/5 hover:text-foreground">{dark ? <Sun className="size-4" strokeWidth={1.5} /> : <Moon className="size-4" strokeWidth={1.5} />}</button><span className="size-1.5 animate-pulse rounded-full bg-good" /><span className="hidden sm:inline">Receptionist online</span></div>
+          <div className="ml-auto flex items-center gap-3 text-xs text-muted-foreground">{LOCATIONS.length > 1 && <select value={settings.location} onChange={(e) => update({ location: e.target.value })} aria-label="Location" className="hidden rounded-md border border-border bg-transparent px-2 py-1 text-xs text-foreground outline-none sm:block"><option value="all">All locations</option>{LOCATIONS.map((l) => <option key={l.name} value={l.name}>{l.name}</option>)}</select>}<button onClick={flip} aria-label="Toggle theme" className="rounded-md p-1.5 transition hover:bg-foreground/5 hover:text-foreground">{dark ? <Sun className="size-4" strokeWidth={1.5} /> : <Moon className="size-4" strokeWidth={1.5} />}</button><span className="size-1.5 animate-pulse rounded-full bg-good" /><span className="hidden sm:inline">Receptionist online</span></div>
         </header>
         <main className="no-scrollbar flex-1 overflow-y-auto print:overflow-visible px-4 pb-32 pt-6 sm:px-6 lg:px-8"><div className="mx-auto w-full max-w-[1180px]">{children}</div></main>
         <form className="print:hidden pointer-events-none fixed inset-x-0 bottom-4 z-30 flex justify-center px-4 md:left-[260px]" onSubmit={(e) => { e.preventDefault(); if (q.trim()) { chat.ask(q); setQ(""); } }}>

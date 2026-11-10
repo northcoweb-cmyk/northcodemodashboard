@@ -4,21 +4,19 @@ import { money } from "./stats";
 const DAY = 86400000;
 
 export const LOCATIONS = [
-  { name: "Tacoma", cities: ["Tacoma", "Lakewood"] },
-  { name: "South Sound", cities: ["Puyallup", "Federal Way"] },
-  { name: "Gig Harbor", cities: ["Gig Harbor"] },
+  { name: "Gaithersburg", cities: ["Gaithersburg", "Rockville", "Germantown", "Bethesda", "Potomac", "Frederick", "Columbia"] },
 ];
-export const locationOf = (address: string) => LOCATIONS.find((l) => l.cities.some((c) => address.includes(c)))?.name ?? "Tacoma";
+export const locationOf = (address: string) => LOCATIONS.find((l) => l.cities.some((c) => address.includes(c)))?.name ?? "Gaithersburg";
 
 export interface Touchpoint { reason: string; action: string; due: number; value?: number; level: "now" | "soon" }
 
 /** The things only a person can do next. This is what an owner actually wants to see. */
 export function touchpoint(lead: Lead, job: Job | undefined, now: number): Touchpoint | null {
   const age = now - lead.at;
-  if (lead.reactivation?.result === "replied") return { reason: "They answered the win-back message", action: "Call them back and book the job.", due: lead.reactivation.sentAt + DAY, value: lead.quote, level: "now" };
+  if (lead.reactivation?.result === "replied") return { reason: "They answered the win-back message", action: "Call them back and book the install.", due: lead.reactivation.sentAt + DAY, value: lead.quote, level: "now" };
   if (lead.status === "replied") return { reason: "They replied to a follow-up", action: "Call or text them back today.", due: lead.at + DAY, value: lead.quote, level: "now" };
   if (lead.quote && lead.status === "contacted" && age > 2 * DAY && age < 9 * DAY) return { reason: `${money(lead.quote)} quote went out ${Math.floor(age / DAY)} days ago`, action: "Touch base by phone before it goes cold.", due: lead.at + 3 * DAY, value: lead.quote, level: "soon" };
-  if (job && job.status === "scheduled" && now - job.at < DAY) return { reason: "Job booked in the last day", action: "Confirm the arrival window with the customer.", due: job.at + 4 * 3600000, value: job.value ?? undefined, level: "soon" };
+  if (job && job.status === "scheduled" && now - job.at < DAY) return { reason: "Estimate booked in the last day", action: "Confirm the drop-off time with the customer.", due: job.at + 4 * 3600000, value: job.value ?? undefined, level: "soon" };
   return null;
 }
 
@@ -27,13 +25,14 @@ export function bookedVia(lead: Lead, call: Call | undefined): string | null {
   if (lead.reactivation?.result === "won") return "Booked after the win-back message";
   if (call?.outcome === "job_booked") return "Booked on the call by the receptionist";
   if (call?.transferred) return "Transferred live to the owner, who booked it";
-  if (lead.source === "form") return "Booked after the owner confirmed from the website form";
+  if (lead.source === "form") return "Booked after the shop confirmed from the website form";
   return "Booked after a reply to the follow-up";
 }
 
 export function whyLead(lead: Lead, call: Call | undefined): string {
   if (call) return call.summary;
-  if (lead.source === "form") return `Filled out ${lead.via ?? "a form on your website"} asking about ${lead.service.toLowerCase()}.`;
+  if (lead.source === "form") return `Filled out ${lead.via ?? "a form on your website"} asking about ${lead.service.toLowerCase()}${lead.vehicle ? ` for a ${lead.vehicle}` : ""}.`;
+  if (lead.source === "gbp") return `Messaged you from your Google Business Profile asking about ${lead.service.toLowerCase()}${lead.vehicle ? ` for a ${lead.vehicle}` : ""}.`;
   return `Emailed asking about ${lead.service.toLowerCase()}.`;
 }
 

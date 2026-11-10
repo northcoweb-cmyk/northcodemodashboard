@@ -18,7 +18,7 @@ export function JobSheet({ job, onClose, onLead }: { job: Job | null; onClose: (
   const call = lead && data ? callForLead(lead, data) : undefined;
   const crew = job && settings.modules.crew.active ? crewFor(job, settings.crew) : [];
   return (
-    <Sheet open={!!job} onOpenChange={(o) => !o && onClose()} title="Job" description="Customer, crew and how it got booked" width="max-w-lg">
+    <Sheet open={!!job} onOpenChange={(o) => !o && onClose()} title="Job" description="Customer, car and how it got booked" width="max-w-lg">
       {job && (
         <div className="flex flex-col gap-6">
           <div><div className="flex flex-wrap items-center gap-2"><h3 className="text-[16px] font-medium">{job.customer}</h3><Pill tone={ST[job.status][0]}>{ST[job.status][1]}</Pill></div><div className="mt-1 text-xs text-muted-foreground">{job.phone}</div></div>

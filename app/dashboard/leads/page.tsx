@@ -12,7 +12,7 @@ import { Timer, Users, FileInput } from "lucide-react";
 import type { Dataset, Lead } from "@/lib/types";
 
 const ST: Record<string, [string, string]> = { new: ["blue", "New"], contacted: ["mute", "Contacted"], replied: ["good", "Replied"], booked: ["good", "Booked"], lost: ["mute", "Closed"] };
-const SRC = { call: "Phone call", form: "Website form", email: "Email" };
+const SRC = { call: "Phone call", form: "Website form", gbp: "Google Business Profile", email: "Email" };
 
 function Leads({ ds }: { ds: Dataset }) {
   const s = summary(ds, 30);

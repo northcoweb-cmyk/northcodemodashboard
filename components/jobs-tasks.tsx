@@ -22,7 +22,7 @@ export function JobsTaskList({ ds, title = "Booked jobs", count = 6, className }
     const badge = age < 1 ? { text: "Today", color: "bg-error text-white" } : age < 2 ? { text: "Yesterday", color: "bg-foreground text-background" } : { text: `${age} days ago`, color: "bg-secondary text-secondary-foreground" };
     return {
       id: j.id, title: `${j.service} · ${j.address.split(",")[0]}`, badge, done: j.status === "completed" || !!done[j.id],
-      date: `${new Date(j.at).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric", timeZone: "America/Los_Angeles" })}${j.value != null ? ` · ${money(j.value)}` : ""}`,
+      date: `${new Date(j.at).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric", timeZone: "America/New_York" })}${j.value != null ? ` · ${money(j.value)}` : ""}`,
       avatars: settings.modules.crew.active ? crewFor(j, settings.crew).map((c) => ({ name: c.name, color: c.color })) : undefined,
     };
   });

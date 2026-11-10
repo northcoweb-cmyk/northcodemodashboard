@@ -11,25 +11,25 @@ export const DEFAULTS: Settings = {
   autoDispatch: true,
   adSpend: 0,
   location: "all",
-  businessName: "Harborline Restoration",
-  plan: "Growth",
-  ownerName: "Mike Harlan",
-  phone: "(253) 555-0142",
-  alertEmail: "mike@harborlinerestoration.com",
-  hours: "Mon to Fri, 8am to 6pm",
-  serviceArea: "Tacoma, Gig Harbor, Puyallup, Federal Way, Lakewood",
-  greeting: "Thanks for calling Harborline Restoration. What's going on?",
+  businessName: "My Paint Doctor",
+  plan: "Stage 1 · AI Operations",
+  ownerName: "VJ",
+  phone: "(240) 424-2554",
+  alertEmail: "you@mypaintdoctor.com",
+  hours: "Mon to Fri 9am to 6pm, Sat 11am to 4pm",
+  serviceArea: "Gaithersburg, Rockville, Germantown, Bethesda, Potomac, Frederick, Columbia, Baltimore",
+  greeting: "Thanks for calling My Paint Doctor. How can I help with your car?",
   agentNames: {},
   modules: {
     followup: { active: true, sidebar: true },
     forms: { active: true, sidebar: true },
     checkins: { active: false, sidebar: false },
-    crew: { active: true, sidebar: true },
+    crew: { active: false, sidebar: false },
   },
   bubbles: true,
 };
 
-const KEY = "nc_dash_settings_v1";
+const KEY = "nc_dash_settings_mpd_v1";
 
 interface Ctx { settings: Settings; update: (p: Partial<Settings>) => void; setModule: (k: keyof Settings["modules"], p: Partial<{ active: boolean; sidebar: boolean }>) => void; reset: () => void }
 const SettingsCtx = createContext<Ctx | null>(null);

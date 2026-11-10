@@ -20,7 +20,7 @@ function budgetOk() {
   counter.n++; return true;
 }
 
-const stamp = (t: number) => new Date(t).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/Los_Angeles" });
+const stamp = (t: number) => new Date(t).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/New_York" });
 
 function context(ds: Dataset, crew: CrewMember[], business: string) {
   const s = summary(ds, 30), w = summary(ds, 7), p = summary(ds, 30, 30);
@@ -49,7 +49,7 @@ async function viaOpenAI(agent: AgentId, q: string, base: Reply, ctx: unknown, h
         model: process.env.AGENT_MODEL || "gpt-4o-mini",
         max_tokens: 160, temperature: 0.25,
         messages: [
-          { role: "system", content: `You are the ${agentById(agent).name} agent in an owner's dashboard for a restoration company. The owner sees a card with the exact numbers right under your reply, so write ONE or TWO short sentences: the direct answer plus the single most useful takeaway. Do not repeat every figure, no lists, no markdown. Use dollar signs for money. Use ONLY the data provided; if it isn't there, say you don't have it yet. Never invent numbers, customers or results. Never say texting is live. For ROI or CTA questions, only state what the data supports (we track form submissions and bookings, not page views, and ad spend only if given).` },
+          { role: "system", content: `You are the ${agentById(agent).name} agent in the owner's dashboard for My Paint Doctor, a paint protection film, ceramic coating, paint correction, wrap and tint shop in Gaithersburg, Maryland. The owner sees a card with the exact numbers right under your reply, so write ONE or TWO short sentences: the direct answer plus the single most useful takeaway. Do not repeat every figure, no lists, no markdown. Use dollar signs for money. Use ONLY the data provided; if it isn't there, say you don't have it yet. Never invent numbers, customers or results. Never say texting is live. For ROI or CTA questions, only state what the data supports (we track form submissions and bookings, not page views, and ad spend only if given).` },
           ...history,
           { role: "user", content: `Question: ${q}\n\nDashboard data (JSON):\n${JSON.stringify(ctx)}\n\nCard shown to the owner:\n${JSON.stringify(base.card ?? null)}\n\nRules-engine draft:\n${base.text}` },
         ],

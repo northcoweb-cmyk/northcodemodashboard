@@ -4,7 +4,7 @@ import { money, within } from "./stats";
 export interface DetailRow { t: string; s: string; r: string }
 export interface Details { heading: string; rows: DetailRow[]; total?: { label: string; value: string }[]; more: number }
 
-const stamp = (t: number) => new Date(t).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/Los_Angeles" });
+const stamp = (t: number) => new Date(t).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/New_York" });
 const LIMIT = 30;
 const cut = (rows: DetailRow[]) => ({ rows: rows.slice(0, LIMIT), more: Math.max(0, rows.length - LIMIT) });
 

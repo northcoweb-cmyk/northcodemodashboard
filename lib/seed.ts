@@ -1,34 +1,35 @@
 import type {
-  Call, CallStep, CheckIn, Dataset, Fix, IssueKey, Job, Lead, LeadSource, LeadStatus, Outcome, Touch, Turn,
+  Call, CallStep, CheckIn, Customer, Dataset, Fix, IssueKey, Job, Lead, LeadSource, LeadStatus, Outcome, Touch, Turn,
 } from "./types";
+import { MAX_TOUCHES, TOUCH_LABELS, emailFor, touchTime } from "./messages";
 
-export const IMPROVEMENT_NAMES: Record<IssueKey, string> = { poor_audio: "Audio quality handling", early_hangup: "Faster greeting", out_of_area: "Service-area routing", needs_pricing: "Insurance and billing answers", address_unclear: "Address read-back" };
+export const IMPROVEMENT_NAMES: Record<IssueKey, string> = { poor_audio: "Audio quality handling", early_hangup: "Faster greeting", out_of_area: "Service-area answers", needs_pricing: "Price-question answers", address_unclear: "Vehicle read-back" };
 
 export const ISSUES: Record<IssueKey, { title: string; short: string; fix: string }> = {
   poor_audio: {
     title: "Couldn't hear the caller",
     short: "Bad audio",
-    fix: "Receptionist asks the caller to repeat or move somewhere quieter, then logs a callback task and emails the owner the number.",
+    fix: "The receptionist asks the caller to repeat or move somewhere quieter, then saves the number and creates a callback task.",
   },
   early_hangup: {
     title: "Caller hung up in the first seconds",
     short: "Early hang-up",
-    fix: "Shorter greeting. The first question is now \"what's going on?\" so the caller is talking within 4 seconds.",
+    fix: "Shorter greeting. The first question is now \"how can I help with your car?\" so the caller is talking within 4 seconds.",
   },
   out_of_area: {
     title: "Outside the service area",
     short: "Out of area",
-    fix: "Service-area ZIP list added to the receptionist. Out-of-area callers get a polite answer and the owner gets an FYI.",
+    fix: "Service-area list added. Callers outside Maryland and the DC area get a polite answer and the shop gets an FYI.",
   },
   needs_pricing: {
-    title: "Asked about price or insurance",
-    short: "Price / insurance",
-    fix: "Insurance and billing answers added. Receptionist explains the process and only transfers if the caller is frustrated.",
+    title: "Asked for a price on the phone",
+    short: "Price question",
+    fix: "Explains that every estimate is done in person and what affects the price, then books a time to look at the car instead of quoting blind.",
   },
   address_unclear: {
-    title: "Address not confirmed",
-    short: "Address unclear",
-    fix: "Read-back step added: the receptionist repeats the address and asks the caller to confirm before sending the job alert.",
+    title: "Vehicle details unclear",
+    short: "Vehicle unclear",
+    fix: "Read-back step added: the receptionist repeats the make and model and asks the caller to confirm before the lead is created.",
   },
 };
 
@@ -39,20 +40,21 @@ const ISSUE_RATE: Record<IssueKey, [number, number]> = {
   poor_audio: [0.03, 0.012],
   early_hangup: [0.028, 0.01],
   out_of_area: [0.02, 0.008],
-  needs_pricing: [0.028, 0.012],
+  needs_pricing: [0.045, 0.02],
   address_unclear: [0.024, 0.006],
 };
 
-const FIRST = ["Marcus","Dana","Priya","Tom","Elena","Chris","Jordan","Nate","Alicia","Ben","Rosa","Kyle","Megan","Omar","Sandra","Luis","Hannah","Greg","Tasha","Victor","Monica","Dennis","Leah","Ray"];
-const LAST = ["Alvarez","Brooks","Chen","Dawson","Ellis","Foster","Grant","Hughes","Ibarra","Jensen","Kim","Lopez","Mercer","Nguyen","Ortiz","Patel","Quinn","Reyes","Stone","Tran","Vance","Walsh","Young"];
-const STREETS = ["Pine St","Harbor Ave","Cedar Ln","Ridge Rd","Lakeview Dr","Maple Ct","Union Ave","6th Ave","Sound View Dr","Orchard St"];
-const CITIES = ["Tacoma","Gig Harbor","Puyallup","Federal Way","Lakewood"];
-export const FORM_PAGES = [["Emergency request form", "/emergency"], ["Free estimate form", "/contact"], ["Water damage page", "/water-damage"], ["Mold inspection page", "/mold-removal"], ["Fire & smoke page", "/fire-damage"]] as const;
-const VALUE: Record<string, [number, number]> = { "Water damage": [2800, 6500], "Burst pipe": [2200, 5500], "Fire & smoke": [8000, 22000], Mold: [2500, 7000], "Sewage backup": [3000, 7500], "Storm damage": [2000, 9000] };
-const SVC_W: [string, number][] = [["Water damage", 35], ["Burst pipe", 20], ["Mold", 15], ["Storm damage", 12], ["Sewage backup", 10], ["Fire & smoke", 8]];
-function wsvc(r: () => number) { let x = r() * 100; for (const [n, w] of SVC_W) { x -= w; if (x <= 0) return n; } return "Water damage"; }
-const qv = (r: () => number, svc: string) => { const g = VALUE[svc] || [2500, 6000]; return Math.round((g[0] + r() * (g[1] - g[0])) / 50) * 50; };
-const SERVICES = ["Water damage","Burst pipe","Fire & smoke","Mold","Sewage backup","Storm damage"];
+const FIRST = ["Marcus","Dana","Priya","Tom","Elena","Chris","Jordan","Nate","Alicia","Ben","Rosa","Kyle","Megan","Omar","Sandra","Luis","Hannah","Greg","Tasha","Victor","Monica","Dennis","Leah","Ray","Daniel","Tyler","Jasmine","Andre"];
+const LAST = ["Alvarez","Brooks","Chen","Dawson","Ellis","Foster","Grant","Hughes","Ibarra","Jensen","Kim","Lopez","Mercer","Nguyen","Ortiz","Patel","Quinn","Reyes","Stone","Tran","Vance","Walsh","Young","Whitfield","Okafor"];
+const STREETS = ["Diamond Ave","Frederick Ave","Muddy Branch Rd","Quince Orchard Rd","Great Seneca Hwy","Darnestown Rd","Clopper Rd","Wisteria Dr","Montgomery Village Ave","Falls Rd"];
+const CITIES = ["Gaithersburg","Rockville","Germantown","Bethesda","Potomac","Frederick","Columbia"];
+const CARS = ["Porsche 911","BMW X5","Mercedes-Benz G63","Tesla Model Y","Audi RS6","Corvette C8","Toyota Supra","Genesis G80","Range Rover Sport","Lexus LC 500","Nissan GT-R","Ford Bronco","Jeep Wagoneer S","Mercedes-AMG GT","Maybach S580","BMW M4","Cadillac Escalade","Lamborghini Urus","Acura NSX","Tesla Model 3"];
+/** Pages and forms on the shop's website that can send a lead. */
+export const FORM_PAGES = [["Free quote form", "/contact"], ["Paint protection film page", "/paint-protection-film"], ["Ceramic coating page", "/ceramic-coatings"], ["Vinyl wrap page", "/vinyl-wrap"], ["Window tint page", "/window-tint"]] as const;
+const VALUE: Record<string, [number, number]> = { "Paint protection film": [1800, 7500], "Ceramic coating": [900, 2800], "Paint correction": [600, 2000], "Vinyl wrap": [2500, 6500], "Window tint": [300, 900], "Detailing": [200, 700] };
+const SVC_W: [string, number][] = [["Paint protection film", 30], ["Ceramic coating", 25], ["Paint correction", 14], ["Vinyl wrap", 11], ["Window tint", 12], ["Detailing", 8]];
+function wsvc(r: () => number) { let x = r() * 100; for (const [n, w] of SVC_W) { x -= w; if (x <= 0) return n; } return "Paint protection film"; }
+const qv = (r: () => number, svc: string) => { const g = VALUE[svc] || [800, 2500]; return Math.round((g[0] + r() * (g[1] - g[0])) / 50) * 50; };
 
 function rng(seed: number) {
   return () => {
@@ -63,7 +65,8 @@ function rng(seed: number) {
   };
 }
 
-const HOUR_W = [3,2,2,2,2,3,5,8,10,11,10,9,8,8,8,8,8,9,9,8,7,6,5,4];
+// Hour weights (Eastern). Most calls come in business hours; a real share lands after close.
+const HOUR_W = [1,1,1,1,1,1,2,3,6,9,11,11,9,8,8,9,9,8,7,6,5,4,3,2];
 
 function pick<T>(r: () => number, arr: readonly T[]): T { return arr[Math.floor(r() * arr.length)]; }
 function wpick(r: () => number, w: number[]) {
@@ -72,57 +75,65 @@ function wpick(r: () => number, w: number[]) {
   return w.length - 1;
 }
 
+/** Shop hours: Mon to Fri 9am-6pm, Saturday 11am-4pm, Sunday closed (Eastern). */
 export function isAfterHours(ts: number) {
   const d = new Date(ts);
-  const local = new Date(d.toLocaleString("en-US", { timeZone: "America/Los_Angeles" }));
+  const local = new Date(d.toLocaleString("en-US", { timeZone: "America/New_York" }));
   const h = local.getHours(), dow = local.getDay();
-  return dow === 0 || dow === 6 || h < 8 || h >= 18;
+  if (dow === 0) return true;
+  if (dow === 6) return h < 11 || h >= 16;
+  return h < 9 || h >= 18;
 }
 
-export function transcript(outcome: Outcome, issue: IssueKey | undefined, name: string, service: string, addr: string): Turn[] {
+const GREETING = "Thanks for calling My Paint Doctor. How can I help with your car?";
+
+export function transcript(outcome: Outcome, issue: IssueKey | undefined, name: string, service: string, vehicle: string): Turn[] {
   const a = (text: string): Turn => ({ who: "ai", text });
   const c = (text: string): Turn => ({ who: "caller", text });
-  const open = a("Thanks for calling. This is the front desk. What's going on?");
+  const open = a(GREETING);
+  const svc = service.toLowerCase();
   if (issue === "poor_audio")
-    return [open, c("[unclear] ...water... kitchen..."), a("I'm having trouble hearing you. Could you say that again, maybe from somewhere quieter?"), c("[unclear]"), a("I still can't make it out. I've saved your number and the team will call you back right away."), c("[line drops]")];
+    return [open, c("[unclear] ...ceramic... my car..."), a("I'm having trouble hearing you. Could you say that again, maybe from somewhere quieter?"), c("[unclear]"), a("I still can't make it out. I've saved your number and the team will call you back."), c("[line drops]")];
   if (issue === "early_hangup") return [open, c("[hangs up]")];
   if (issue === "out_of_area")
-    return [open, c(`Hi, I have a ${service.toLowerCase()} problem at my place in Spokane.`), a("Thanks for calling. That address is outside the area the team covers. I've passed your details along in case they can point you somewhere."), c("Okay, thanks anyway.")];
+    return [open, c(`Hi, I'm in Atlanta. Do you do ${svc}?`), a("Thanks for calling. The shop is in Gaithersburg, Maryland and serves the DC and Baltimore area, so that's outside what we cover. I've passed your details along in case the team can point you somewhere."), c("Okay, thanks anyway.")];
   if (issue === "needs_pricing")
-    return [open, c(`I've got ${service.toLowerCase()}. Before anything, what does this cost and will insurance cover it?`), a("The team works directly with most insurance companies and the estimate is done on site. I can get someone out to you. What's the address?"), c(`${addr}.`), a("Let me read that back to confirm. Is that right?"), c("Yes, that's right.")];
+    return [open, c(`How much for ${svc}? Just give me a number.`), a("The price depends on the car and the paint, so the team does a quick in-person estimate. What are you driving?"), c(`A ${vehicle}.`), a(`Let me read that back to confirm. A ${vehicle}, is that right?`), c("Yes, that's right.")];
   if (issue === "address_unclear")
-    return [open, c(`${service} in the basement.`), a("What's the address?"), c("Uh, off Union, near the school."), a("I need the street number to send someone. Can you give me the full address?"), c("I'll have to check, I'm not home.")];
+    return [open, c(`I want ${svc} on my car.`), a("Great. What are you driving?"), c("Uh, it's a dark gray one, a sedan."), a("I need the make and model so the team can prepare an accurate estimate. Do you have that handy?"), c("I'll have to check, I'm not at home.")];
   if (outcome === "missed") return [{ who: "caller", text: "[busy signal, caller hung up]" }];
-  if (outcome === "spam") return [open, c("This is a recorded message about your vehicle warranty..."), a("This number is for service requests only. Goodbye.")];
+  if (outcome === "spam") return [open, c("This is a recorded message about your vehicle's extended warranty..."), a("This number is for service requests only. Goodbye.")];
   if (outcome === "info")
-    return [open, c("Do you guys do commercial properties?"), a("Yes, the team handles residential and commercial. Is there an active problem right now?"), c("No, just planning."), a("Understood. I'll send your question to the team and they'll reply by email.")];
+    return [open, c("What's the difference between PPF and ceramic coating?"), a("Paint protection film is a clear layer that physically helps stop rock chips and scratches. Ceramic coating is a liquid layer that adds gloss and makes the car easier to clean, but it doesn't stop chips. A lot of people do film on the front of the car and ceramic over the rest. What are you driving?"), c(`A ${vehicle}.`), a("Nice car. The team can look at it and recommend what makes sense. What's your name and a good email so I can send you the options?"), c(`${name}.`)];
   if (outcome === "transferred")
-    return [open, c(`${service} and nobody is helping me, I need a person right now!`), a("I'm sorry, I'm connecting you to the owner right now."), c("Thank you."), a("Transferring now.")];
+    return [open, c(`I've called about my ${vehicle} three times and nobody has gotten back to me!`), a("I'm sorry about that. I'm connecting you to the owner right now."), c("Thank you."), a("Transferring now.")];
   if (outcome === "quote_requested")
-    return [open, c(`I need someone to look at ${service.toLowerCase()} and give me an estimate.`), a("Happy to set that up. Is there standing water or active damage?"), c("Not active, it's from last week."), a("What's the address?"), c(`${addr}.`), a(`Got it, ${name.split(" ")[0]}. I've sent your request to the team and you'll get an email shortly.`)];
-  return [open, c(`${service} at my house, it's getting worse.`), a("Is anyone in danger, and is the water still running?"), c("Water's shut off. About an inch on the floor."), a("What's the address?"), c(`${addr}.`), a("Read back to confirm. Is that right?"), c("Yes."), a("A technician is being alerted now. You'll also get an email with the details.")];
+    return [open, c(`I'd like ${svc} on my ${vehicle}. Can I get an estimate?`), a("Happy to set that up. Is the car new, or does the paint have some wear?"), c("It's about two years old, a few small chips."), a(`Got it, ${name.split(" ")[0]}. I'll send your request to the team and you'll get an email in a few minutes with next steps. What's the best email?`), c("I'll spell it for you.")];
+  return [open, c(`I need ${svc} on my ${vehicle}. Can I come in this week?`), a("Let me check. What's your name and the best number?"), c(`${name}.`), a("I have an estimate slot open. I've booked you in and you'll get a confirmation email shortly."), c("Perfect, thanks.")];
 }
 
 export function stepsFor(outcome: Outcome, issue: IssueKey | undefined, transferred: boolean): CallStep[] {
   const mk = (key: CallStep["key"], label: string, state: CallStep["state"], note: string): CallStep => ({ key, label, state, note });
-  if (outcome === "missed") return [mk("answered", "Answered", "flagged", "Line was busy with another caller"), mk("greeted", "Greeted", "skipped", "Caller hung up before pickup"), mk("qualified", "Urgency checked", "skipped", "Not reached"), mk("captured", "Details captured", "skipped", "Number saved from caller ID"), mk("classified", "Call classified", "done", "Marked as a missed call"), mk("alerted", "Owner alerted", "done", "Callback task emailed")];
+  if (outcome === "missed") return [mk("answered", "Answered", "flagged", "Line was busy with another caller"), mk("greeted", "Greeted", "skipped", "Caller hung up before pickup"), mk("qualified", "Service identified", "skipped", "Not reached"), mk("captured", "Details captured", "skipped", "Number saved from caller ID"), mk("classified", "Call classified", "done", "Marked as a missed call"), mk("alerted", "Shop alerted", "done", "Callback task emailed")];
   const bad = issue === "poor_audio" || issue === "early_hangup";
   return [
     mk("answered", "Answered", "done", "Picked up on the first ring"),
-    mk("greeted", "Greeted", bad && issue === "early_hangup" ? "flagged" : "done", issue === "early_hangup" ? "Caller left before the first question" : "Opened with what's going on"),
-    mk("qualified", "Urgency checked", bad ? "skipped" : "done", bad ? "Not enough audio to qualify" : "Asked about active damage and safety"),
-    mk("captured", "Details captured", bad || issue === "out_of_area" ? "skipped" : issue === "address_unclear" ? "flagged" : "done", issue === "address_unclear" ? "Street number missing" : bad ? "Number saved for callback" : "Name, phone, address, service"),
-    mk("classified", "Call classified", outcome === "spam" ? "done" : "done", outcome === "spam" ? "Marked as spam" : outcome === "issue" ? `Flagged: ${ISSUES[issue!].short}` : "Job or lead type set"),
-    mk("alerted", transferred ? "Transferred" : "Owner alerted", outcome === "spam" ? "skipped" : "done", transferred ? "Live transfer to the owner" : outcome === "spam" ? "No alert for spam" : "Job alert email sent"),
+    mk("greeted", "Greeted", bad && issue === "early_hangup" ? "flagged" : "done", issue === "early_hangup" ? "Caller left before the first question" : "Opened by asking how it can help"),
+    mk("qualified", "Service identified", bad ? "skipped" : "done", bad ? "Not enough audio to tell" : "PPF, ceramic, correction, wrap, tint or detail"),
+    mk("captured", "Details captured", bad || issue === "out_of_area" ? "skipped" : issue === "address_unclear" ? "flagged" : "done", issue === "address_unclear" ? "Make and model missing" : bad ? "Number saved for callback" : "Name, phone, email, vehicle, service"),
+    mk("classified", "Call classified", "done", outcome === "spam" ? "Marked as spam" : outcome === "issue" ? `Flagged: ${ISSUES[issue!].short}` : "Estimate, question or booking set"),
+    mk("alerted", transferred ? "Transferred" : "Shop alerted", outcome === "spam" ? "skipped" : "done", transferred ? "Live transfer to the owner" : outcome === "spam" ? "No alert for spam" : "Lead alert email sent"),
   ];
 }
 
+const HOUR = 3600000, MIN = 60000;
+
 export function generate(now = Date.now()): Dataset {
   now = Math.floor(now / 3600000) * 3600000;
-  const r = rng(90210);
+  const r = rng(240424);
   const DAY = 86400000;
   const calls: Call[] = [];
-  const phone = () => `(253) 555-01${String(Math.floor(r() * 90) + 10)}`;
+  const phone = () => `(${r() < 0.6 ? 240 : 301}) 555-01${String(Math.floor(r() * 90) + 10)}`;
   const nm = () => `${pick(r, FIRST)} ${pick(r, LAST)}`;
   let cid = 1000;
 
@@ -130,21 +141,22 @@ export function generate(now = Date.now()): Dataset {
     .sort((a, b) => FIX_DAYS[b] - FIX_DAYS[a])
     .map((k) => ({ issue: k, title: ISSUES[k].title, change: ISSUES[k].fix, daysAgo: FIX_DAYS[k], at: now - FIX_DAYS[k] * DAY }));
 
-  const pool = Array.from({ length: 14 }, () => ({ name: nm(), phone: phone() }));
+  const pool = Array.from({ length: 12 }, () => ({ name: nm(), phone: phone() }));
+  const vehOf = new Map<string, string>();
 
   for (let d = 60; d >= 0; d--) {
     const dayStart = now - d * DAY;
     const dow = new Date(dayStart).getDay();
-    let n = 11 + Math.floor(r() * 7) - (dow === 0 || dow === 6 ? 3 : 0);
-    if (d === 38 || d === 12 || d === 5) n += 8; // storm days
+    let n = 3 + Math.floor(r() * 4) - (dow === 0 ? 2 : dow === 6 ? 1 : 0);
+    if (d === 33 || d === 12 || d === 5) n += 3; // promo days
     for (let i = 0; i < n; i++) {
       const hour = wpick(r, HOUR_W);
-      const at = new Date(dayStart); at.setUTCHours(hour + 8, Math.floor(r() * 60), Math.floor(r() * 60), 0);
+      const at = new Date(dayStart); at.setUTCHours(hour + 5, Math.floor(r() * 60), Math.floor(r() * 60), 0);
       let ts = at.getTime(); while (ts > now) ts -= DAY;
       const ret = r() < 0.09 ? pool[Math.floor(r() * pool.length)] : null; const name = ret ? ret.name : nm(); const callerPhone = ret ? ret.phone : phone(); const service = wsvc(r);
+      const vehicle = pick(r, CARS);
       const addr = `${100 + Math.floor(r() * 8800)} ${pick(r, STREETS)}`;
-      const full = `${addr}, ${pick(r, CITIES)}, WA`;
-      // issue roll
+      const full = `${addr}, ${pick(r, CITIES)}, MD`;
       let issue: IssueKey | undefined;
       for (const k of Object.keys(ISSUE_RATE) as IssueKey[]) {
         const after = ts >= now - FIX_DAYS[k] * DAY;
@@ -153,67 +165,93 @@ export function generate(now = Date.now()): Dataset {
       let outcome: Outcome;
       let transferred = false;
       if (issue) outcome = "issue";
-      else if (r() < 0.014) outcome = "missed";
+      else if (r() < 0.012) outcome = "missed";
       else {
         const x = r();
-        outcome = x < 0.14 ? "spam" : x < 0.56 ? "info" : x < 0.9 ? "quote_requested" : x < 0.94 ? "transferred" : "job_booked";
+        outcome = x < 0.1 ? "spam" : x < 0.5 ? "info" : x < 0.86 ? "quote_requested" : x < 0.89 ? "transferred" : "job_booked";
         if (outcome === "transferred") transferred = true;
       }
       const recovered = issue ? r() < (issue === "early_hangup" ? 0.1 : issue === "out_of_area" ? 0 : 0.55) : undefined;
-      const dur = outcome === "missed" ? 0 : issue === "early_hangup" ? 3 + Math.floor(r() * 6) : outcome === "spam" ? 8 + Math.floor(r() * 12) : issue === "poor_audio" ? 25 + Math.floor(r() * 25) : 55 + Math.floor(r() * 230);
+      const dur = outcome === "missed" ? 0 : issue === "early_hangup" ? 3 + Math.floor(r() * 6) : outcome === "spam" ? 8 + Math.floor(r() * 12) : issue === "poor_audio" ? 25 + Math.floor(r() * 25) : 60 + Math.floor(r() * 220);
+      const id = `c_${cid++}`; vehOf.set(id, vehicle);
       calls.push({
-        id: `c_${cid++}`, at: ts, durationSec: dur, name: outcome === "spam" ? "Unknown caller" : outcome === "missed" ? "Missed call" : name, phone: callerPhone,
+        id, at: ts, durationSec: dur, name: outcome === "spam" ? "Unknown caller" : outcome === "missed" ? "Missed call" : name, phone: callerPhone,
         afterHours: isAfterHours(ts), service, address: full, outcome, issue, recovered, transferred,
-        summary: issue ? `${ISSUES[issue].title}.` : outcome === "missed" ? "Line was busy with another caller. Number saved and a callback task emailed." : outcome === "spam" ? "Recorded sales call, no alert sent." : outcome === "info" ? `Question about services, answered. Follow-up sent by email.` : outcome === "transferred" ? `${service}. Caller frustrated, transferred live to the owner.` : outcome === "quote_requested" ? `${service} estimate request at ${addr}.` : `${service} at ${addr}. Job alert sent.`,
-        steps: stepsFor(outcome, issue, transferred), transcript: transcript(outcome, issue, name, service, addr),
+        summary: issue ? `${ISSUES[issue].title}.` : outcome === "missed" ? "Line was busy with another caller. Number saved and a callback task emailed." : outcome === "spam" ? "Recorded sales call, no alert sent." : outcome === "info" ? `Asked about ${service.toLowerCase()} for a ${vehicle}. Questions answered and options emailed.` : outcome === "transferred" ? `${service}, ${vehicle}. Caller frustrated, transferred live to the owner.` : outcome === "quote_requested" ? `${service} estimate request for a ${vehicle}.` : `${service} for a ${vehicle}. Estimate booked.`,
+        steps: stepsFor(outcome, issue, transferred), transcript: transcript(outcome, issue, name, service, vehicle),
       });
     }
   }
   calls.sort((a, b) => b.at - a.at);
 
-  // leads
+  // ---- leads, each with a 12-step follow-up plan and the real email text ----
   const leads: Lead[] = []; let lid = 500;
-  const touchLabels = ["Instant reply", "Next-day check-in", "Day-4 follow-up"];
-  const mkTouches = (at: number, status: LeadStatus): Touch[] => {
-    const offs = [3 * 60000, DAY + 9 * 3600000, 4 * DAY + 10 * 3600000];
+  type LeadBase = Pick<Lead, "name" | "service" | "vehicle" | "source" | "via">;
+  const mkTouches = (lead: LeadBase, at: number, status: LeadStatus, replyMin: number): Touch[] => {
     const out: Touch[] = [];
-    for (let i = 0; i < 3; i++) {
-      const sentAt = at + offs[i];
+    for (let i = 0; i < MAX_TOUCHES; i++) {
+      const sentAt = i === 0 ? at + replyMin * MIN : touchTime(at, i);
       if (sentAt > now) break;
-      if ((status === "booked" || status === "replied") && i > 0 && r() < 0.6) break;
-      const opened = r() < (i === 0 ? 0.62 : 0.45);
-      out.push({ n: i + 1, label: touchLabels[i], sentAt, opened, replied: opened && r() < (i === 0 ? 0.22 : 0.12) });
+      if ((status === "booked" || status === "replied") && i > 0 && r() < 0.7) break;
+      const opened = r() < (i === 0 ? 0.68 : 0.42);
+      const e = emailFor(i + 1, lead);
+      out.push({ n: i + 1, label: TOUCH_LABELS[i], channel: "email", subject: e.subject, body: e.body, sentAt, opened, replied: opened && r() < (i === 0 ? 0.24 : 0.1) });
     }
     return out;
   };
-  const statusFor = (age: number): LeadStatus => { const x = r(); if (age < 2 * DAY) return x < 0.5 ? "new" : "contacted"; const v: LeadStatus = x < 0.075 ? "booked" : x < 0.22 ? "replied" : x < 0.46 ? "contacted" : "lost"; return v === "contacted" && age > 10 * DAY ? "lost" : v; };
+  const statusFor = (age: number): LeadStatus => { const x = r(); if (age < 2 * DAY) return x < 0.5 ? "new" : "contacted"; const v: LeadStatus = x < 0.14 ? "booked" : x < 0.26 ? "replied" : x < 0.62 ? "contacted" : "lost"; return v === "contacted" && age > 60 * DAY ? "lost" : v; };
   for (const c of calls) {
-    if (c.outcome === "spam" || c.outcome === "missed" || c.outcome === "info" && r() < 0.85 || (c.issue && !c.recovered)) continue;
+    if (c.outcome === "spam" || c.outcome === "missed" || c.outcome === "info" && r() < 0.5 || (c.issue && !c.recovered)) continue;
     const st: LeadStatus = c.outcome === "job_booked" ? "booked" : c.outcome === "transferred" ? (r() < 0.7 ? "booked" : "contacted") : statusFor(now - c.at);
     const first = c.name.split(" ")[0].toLowerCase();
-    leads.push({ id: `l_${lid++}`, at: c.at, source: "call", name: c.name, phone: c.phone, email: `${first}${Math.floor(r() * 90)}@gmail.com`, service: c.service, address: c.address, quote: st === "booked" || r() < 0.7 ? qv(r, c.service) : undefined, status: st, firstReplyMin: 1 + Math.floor(r() * 4), callId: c.id, touches: mkTouches(c.at, st) });
+    const vehicle = vehOf.get(c.id) ?? pick(r, CARS);
+    const reply = 3 + Math.floor(r() * 7);
+    const base: LeadBase = { name: c.name, service: c.service, vehicle, source: "call" };
+    leads.push({ id: `l_${lid++}`, at: c.at, source: "call", name: c.name, phone: c.phone, email: `${first}${Math.floor(r() * 90)}@gmail.com`, service: c.service, vehicle, address: c.address, quote: st === "booked" || r() < 0.3 ? qv(r, c.service) : undefined, status: st, firstReplyMin: reply, callId: c.id, touches: mkTouches(base, c.at, st, reply) });
   }
   for (let d = 60; d >= 0; d--) {
-    const nf = r() < 0.8 ? 1 : 0; const ne = r() < 0.2 ? 1 : 0;
-    for (let i = 0; i < nf + ne; i++) {
-      const src: LeadSource = i < nf ? "form" : "email";
-      const ts = now - d * DAY + (8 + Math.floor(r() * 12)) * 3600000 - 8 * 3600000 + Math.floor(r() * 3600000);
+    const nf = r() < 0.75 ? 1 : 0; const ng = r() < 0.55 ? 1 : 0; const ne = r() < 0.15 ? 1 : 0;
+    const plan: LeadSource[] = [...Array<LeadSource>(nf).fill("form"), ...Array<LeadSource>(ng).fill("gbp"), ...Array<LeadSource>(ne).fill("email")];
+    for (const src of plan) {
+      const ts = now - d * DAY + (8 + Math.floor(r() * 12)) * HOUR - 5 * HOUR + Math.floor(r() * HOUR);
       if (ts > now) continue;
       const name = nm(); const st = statusFor(now - ts);
-      leads.push({ id: `l_${lid++}`, at: ts, source: src, name, phone: phone(), email: `${name.split(" ")[0].toLowerCase()}.${name.split(" ")[1].toLowerCase()}@${pick(r, ["gmail.com", "outlook.com", "yahoo.com"])}`, service: wsvc(r), address: `${100 + Math.floor(r() * 8800)} ${pick(r, STREETS)}, ${pick(r, CITIES)}, WA`, quote: undefined, via: src === "form" ? (() => { const f = pick(r, FORM_PAGES); return `${f[0]} · ${f[1]}`; })() : undefined, status: st, firstReplyMin: src === "form" ? 1 + Math.floor(r() * 5) : 4 + Math.floor(r() * 22), touches: mkTouches(ts, st) });
+      const service = wsvc(r); const vehicle = pick(r, CARS);
+      const via = src === "form" ? (() => { const f = pick(r, FORM_PAGES); return `${f[0]} · ${f[1]}`; })() : src === "gbp" ? "Google Business Profile · message" : undefined;
+      const reply = src === "form" ? 6 + Math.floor(r() * 9) : src === "gbp" ? 7 + Math.floor(r() * 10) : 10 + Math.floor(r() * 15);
+      leads.push({ id: `l_${lid++}`, at: ts, source: src, name, phone: phone(), email: `${name.split(" ")[0].toLowerCase()}.${name.split(" ")[1].toLowerCase()}@${pick(r, ["gmail.com", "outlook.com", "yahoo.com", "icloud.com"])}`, service, vehicle, address: `${100 + Math.floor(r() * 8800)} ${pick(r, STREETS)}, ${pick(r, CITIES)}, MD`, quote: r() < 0.18 ? qv(r, service) : undefined, via, status: st, firstReplyMin: reply, touches: mkTouches({ name, service, vehicle, source: src, via }, ts, st, reply) });
     }
   }
   leads.sort((a, b) => b.at - a.at);
 
-  // quiet leads get a personalized win-back message two weeks later
+  // quiet leads get a personalized win-back note
   for (const l of leads) {
     if ((l.status !== "lost" && l.status !== "contacted") || now - l.at < 15 * DAY) continue;
     if (r() > 0.6) continue;
-    const first = l.name.split(" ")[0]; const sentAt = l.at + 14 * DAY + 10 * 3600000;
+    const first = l.name.split(" ")[0]; const sentAt = l.at + 14 * DAY + 10 * HOUR;
     const x = r();
-    l.reactivation = { sentAt, message: `Hi ${first}, it's been a couple of weeks since you reached out about the ${l.service.toLowerCase()} at ${l.address.split(",")[0]}. If it still needs attention we have openings this week. If it's already sorted, reply "done" and we'll close it out.`, result: x < 0.07 ? "won" : x < 0.26 ? "replied" : "none" };
+    l.reactivation = { sentAt, message: `Hi ${first}, it's been a couple of weeks since you asked about ${l.service.toLowerCase()} for your ${l.vehicle ?? "car"}. If you'd still like it done, we have openings this week and I can send a fresh estimate. If it's already sorted, reply "done" and we'll close it out.`, result: x < 0.09 ? "won" : x < 0.28 ? "replied" : "none" };
     if (l.reactivation.result === "won") l.status = "booked";
   }
+
+  // ---- showcase leads for the live demo (fixed, so the call can point at them) ----
+  const ago = (min: number) => now - min * MIN;
+  const show = (o: Omit<Lead, "id" | "touches" | "firstReplyMin"> & { replyMin: number; steps: number }): Lead => {
+    const { replyMin, steps, ...rest } = o;
+    const touches = mkTouches({ name: rest.name, service: rest.service, vehicle: rest.vehicle, source: rest.source, via: rest.via }, rest.at, rest.status, replyMin).slice(0, steps);
+    return { ...rest, id: `l_${lid++}`, firstReplyMin: replyMin, touches };
+  };
+  const D = 24 * 60;
+  const showcase: Lead[] = [
+    show({ at: ago(34), source: "form", name: "Daniel Whitfield", phone: "(240) 555-0142", email: "daniel.whitfield@gmail.com", service: "Paint protection film", vehicle: "Porsche 911 Turbo S", address: "1840 Diamond Ave, Gaithersburg, MD", via: "Free quote form · /contact", status: "contacted", replyMin: 9, steps: 1 }),
+    show({ at: ago(180), source: "call", name: "Priya Nair", phone: "(301) 555-0178", email: "priya.nair@outlook.com", service: "Ceramic coating", vehicle: "Tesla Model Y", address: "22 Orchard Way, Rockville, MD", status: "contacted", replyMin: 5, steps: 1, quote: 1450 }),
+    show({ at: ago(6 * D), source: "form", name: "Marcus Hale", phone: "(240) 555-0163", email: "marcus.hale@gmail.com", service: "Paint protection film", vehicle: "BMW M4", address: "310 Clopper Rd, Gaithersburg, MD", via: "Paint protection film page · /paint-protection-film", status: "contacted", replyMin: 8, steps: 4, quote: 5200 }),
+    show({ at: ago(12 * D), source: "gbp", name: "Alicia Brooks", phone: "(301) 555-0191", email: "alicia.brooks@icloud.com", service: "Vinyl wrap", vehicle: "Genesis G80", address: "75 Great Seneca Hwy, Germantown, MD", via: "Google Business Profile · message", status: "contacted", replyMin: 11, steps: 5, quote: 3900 }),
+    show({ at: ago(21 * D), source: "call", name: "Tom Reyes", phone: "(240) 555-0117", email: "tom.reyes@gmail.com", service: "Ceramic coating", vehicle: "Corvette C8", address: "9 Quince Orchard Rd, Gaithersburg, MD", status: "contacted", replyMin: 6, steps: 7, quote: 2100 }),
+    show({ at: ago(34 * D), source: "form", name: "Jasmine Okafor", phone: "(301) 555-0122", email: "jasmine.okafor@yahoo.com", service: "Paint correction", vehicle: "Lexus LC 500", address: "480 Darnestown Rd, Potomac, MD", via: "Free quote form · /contact", status: "contacted", replyMin: 7, steps: 8, quote: 1250 }),
+  ];
+  leads.unshift(...showcase);
+  leads.sort((a, b) => b.at - a.at);
 
   // jobs from booked leads
   const jobs: Job[] = []; let jid = 300;
@@ -222,20 +260,35 @@ export function generate(now = Date.now()): Dataset {
     const age = now - l.at;
     const status = age < 3 * DAY ? "scheduled" : age < 9 * DAY ? "in_progress" : "completed";
     const value = l.quote != null && r() < 0.9 ? l.quote : l.quote == null && r() < 0.5 ? qv(r, l.service) : null;
-    jobs.push({ id: `j_${jid++}`, leadId: l.id, customer: l.name, service: l.service, address: l.address, phone: l.phone, value, status: l.reactivation?.result === "won" ? (now - l.reactivation.sentAt < 3 * DAY ? "scheduled" : "completed") : status, at: l.reactivation?.result === "won" ? l.reactivation.sentAt + 5 * 3600000 : l.at + 3600000 * (2 + Math.floor(r() * 20)), source: l.source, reactivated: l.reactivation?.result === "won" || undefined });
+    jobs.push({ id: `j_${jid++}`, leadId: l.id, customer: l.name, service: l.service, address: l.address, phone: l.phone, value, status: l.reactivation?.result === "won" ? (now - l.reactivation.sentAt < 3 * DAY ? "scheduled" : "completed") : status, at: l.reactivation?.result === "won" ? l.reactivation.sentAt + 5 * HOUR : l.at + HOUR * (2 + Math.floor(r() * 20)), source: l.source, reactivated: l.reactivation?.result === "won" || undefined });
   }
-  pool.forEach((c, i) => { const k = 1 + (i % 2); for (let h = 0; h < k; h++) { const svc = wsvc(r); jobs.push({ id: `j_${jid++}`, leadId: `l_hist${i}${h}`, customer: c.name, service: svc, address: `${100 + Math.floor(r() * 8800)} ${pick(r, STREETS)}, ${pick(r, CITIES)}, WA`, phone: c.phone, value: qv(r, svc), status: "completed", at: now - (75 + Math.floor(r() * 320)) * DAY, source: "call" }); } });
+
+  // past customers, including ones whose coating is due for a maintenance visit
+  const customers: Customer[] = [];
+  const due = [
+    ["Rosa Mercer", "Audi RS6", "Ceramic coating", 318], ["Kyle Grant", "Nissan GT-R", "Ceramic coating", 342], ["Hannah Ibarra", "Porsche 911", "Paint protection film", 356],
+    ["Omar Patel", "Mercedes-AMG GT", "Ceramic coating", 301], ["Sandra Quinn", "Range Rover Sport", "Ceramic coating", 388], ["Greg Jensen", "Toyota Supra", "Paint protection film", 331],
+    ["Leah Foster", "BMW X5", "Ceramic coating", 296], ["Ray Dawson", "Ford Bronco", "Ceramic coating", 365],
+  ] as const;
+  due.forEach(([name, vehicle, service, daysAgo], i) => {
+    const value = qv(r, service);
+    const email = `${name.split(" ")[0].toLowerCase()}.${name.split(" ")[1].toLowerCase()}@gmail.com`;
+    const ph = phone();
+    customers.push({ id: `cu_${i}`, name, phone: ph, email, vehicle, service, doneAt: now - daysAgo * DAY, value });
+    jobs.push({ id: `j_${jid++}`, leadId: `l_hist${i}`, customer: name, service, address: `${100 + Math.floor(r() * 8800)} ${pick(r, STREETS)}, ${pick(r, CITIES)}, MD`, phone: ph, value, status: "completed", at: now - daysAgo * DAY, source: "call" });
+  });
+  pool.forEach((c, i) => { const svc = wsvc(r); jobs.push({ id: `j_${jid++}`, leadId: `l_pool${i}`, customer: c.name, service: svc, address: `${100 + Math.floor(r() * 8800)} ${pick(r, STREETS)}, ${pick(r, CITIES)}, MD`, phone: c.phone, value: qv(r, svc), status: "completed", at: now - (75 + Math.floor(r() * 220)) * DAY, source: "call" }); });
   jobs.sort((a, b) => b.at - a.at);
 
-  // check-in calls: quote/info leads still open after 3 days
+  // check-in calls: open estimates 3+ days old
   const checkins: CheckIn[] = []; let kid = 1;
   for (const l of leads) {
     if (l.status === "booked" || l.status === "new" || now - l.at < 3 * DAY || now - l.at > 30 * DAY) continue;
-    if (r() > 0.45) continue;
+    if (r() > 0.4) continue;
     const x = r();
-    checkins.push({ id: `k_${kid++}`, leadId: l.id, name: l.name, at: l.at + 3 * DAY + 11 * 3600000, result: x < 0.3 ? "got_help_elsewhere" : x < 0.5 ? "still_needs_help" : x < 0.68 ? "booked" : x < 0.86 ? "no_answer" : "voicemail_left" });
+    checkins.push({ id: `k_${kid++}`, leadId: l.id, name: l.name, at: l.at + 3 * DAY + 11 * HOUR, result: x < 0.3 ? "got_help_elsewhere" : x < 0.5 ? "still_needs_help" : x < 0.68 ? "booked" : x < 0.86 ? "no_answer" : "voicemail_left" });
   }
   checkins.sort((a, b) => b.at - a.at);
 
-  return { now, calls, leads, jobs, checkins, fixes };
+  return { now, calls, leads, jobs, checkins, fixes, customers };
 }

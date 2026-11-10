@@ -46,12 +46,15 @@ export interface Call {
   transcript: Turn[];
 }
 
-export type LeadSource = "call" | "form" | "email";
+export type LeadSource = "call" | "form" | "email" | "gbp";
 export type LeadStatus = "new" | "contacted" | "replied" | "booked" | "lost";
 
 export interface Touch {
   n: number;
   label: string;
+  channel?: "email" | "text" | "call";
+  subject?: string;
+  body?: string;
   sentAt: number;
   opened: boolean;
   replied: boolean;
@@ -66,6 +69,7 @@ export interface Lead {
   email: string;
   service: string;
   address: string;
+  vehicle?: string;
   /** What we quoted, in dollars, when a quote went out. */
   quote?: number;
   /** For form leads: which form or page they reached out from. */
@@ -108,8 +112,20 @@ export interface Fix {
   at: number;
 }
 
+export interface Customer {
+  id: string;
+  name: string;
+  phone: string;
+  email: string;
+  vehicle: string;
+  service: string;
+  doneAt: number;
+  value: number;
+}
+
 export interface Dataset {
   now: number;
+  customers?: Customer[];
   calls: Call[];
   leads: Lead[];
   jobs: Job[];

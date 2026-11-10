@@ -19,7 +19,7 @@ const input = "rounded-lg border border-border bg-background px-3 py-2 text-[13p
 
 function CrewForm({ member, onSave, onRemove, onClose }: { member: CrewMember | null; onSave: (m: CrewMember) => void; onRemove?: () => void; onClose: () => void }) {
   const { settings } = useSettings();
-  const [m, setM] = useState<CrewMember>(member ?? { id: `cr${Date.now()}`, name: "", role: "Technician", phone: "", skills: ["Water damage"], color: COLORS[settings.crew.length % COLORS.length], status: "available" });
+  const [m, setM] = useState<CrewMember>(member ?? { id: `cr${Date.now()}`, name: "", role: "Technician", phone: "", skills: ["Paint protection film"], color: COLORS[settings.crew.length % COLORS.length], status: "available" });
   const toggle = (s: string) => setM({ ...m, skills: m.skills.includes(s) ? m.skills.filter((x) => x !== s) : [...m.skills, s] });
   const ok = m.name.trim() && m.phone.trim() && m.skills.length;
   return (
@@ -98,7 +98,7 @@ function Crew({ ds }: { ds: Dataset }) {
               <div className="mb-2 flex items-center justify-between px-1 text-[11px] text-muted-foreground"><span>To: {cur.crew.map((c) => c.name.split(" ")[0]).join(", ") || "No one available"}</span><Send className="size-3" /></div>
               <div className="rounded-2xl rounded-bl-md bg-foreground px-3.5 py-2.5 text-[13px] leading-relaxed text-background">{cur.message}</div>
               <div className="mt-2 flex items-start gap-1.5 px-1 text-[11px] text-muted-foreground"><MapPin className="mt-0.5 size-3 shrink-0" /><span>{cur.job.address}</span></div>
-              {cur.replies.map((r) => <div key={r.who} className="mt-2 flex flex-col items-end"><div className="rounded-2xl rounded-br-md bg-foreground/10 px-3 py-1.5 text-[13px]">{r.text}</div><span className="mt-0.5 text-[10px] text-muted-foreground">{r.who.split(" ")[0]} · {new Date(r.at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/Los_Angeles" })}</span></div>)}
+              {cur.replies.map((r) => <div key={r.who} className="mt-2 flex flex-col items-end"><div className="rounded-2xl rounded-br-md bg-foreground/10 px-3 py-1.5 text-[13px]">{r.text}</div><span className="mt-0.5 text-[10px] text-muted-foreground">{r.who.split(" ")[0]} · {new Date(r.at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/New_York" })}</span></div>)}
             </div>
             <ul className="mt-4 flex flex-col gap-2 text-xs text-muted-foreground">
               {["Job booked by the receptionist", "Crew matched by skill and availability", "Dispatch message sent with address and customer", "First reply accepts the job"].map((t) => <li key={t} className="flex gap-2"><Check className="mt-0.5 size-3.5 shrink-0 text-good" strokeWidth={2} />{t}</li>)}

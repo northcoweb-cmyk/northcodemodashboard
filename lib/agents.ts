@@ -17,8 +17,8 @@ export interface AgentDef {
 export const AGENTS: AgentDef[] = [
   { id: "dispatch", name: "Concierge", role: "Routes your question", color: "#8a8a99", blurb: "Ask anything. Concierge hands it to the right agent.", prompts: ["How did we do this week?"], keys: /^$/ },
   { id: "receptionist", name: "Receptionist", role: "Calls, issues and fixes", color: "#7aa7ff", blurb: "Answers every call and knows what was said, how it was handled, and what went wrong.", prompts: ["Why couldn't it hear some callers?", "How many calls came in after hours?", "What have you improved?"], keys: /busiest|peak|latest|call|phone|ring|answer|hear|audio|noise|transfer|spam|hang|after.?hours|night|weekend|voicemail|transcript|greeting|handled|issue|problem/i },
-  { id: "leads", name: "Lead Response", role: "Leads, follow-up and forms", color: "#4ade9a", blurb: "Replies to every new lead in minutes, runs the follow-up emails, and watches your website forms.", prompts: ["What's my conversion rate by source?", "Which form converts best?", "What's the ROI on my forms?", "How fast do we reply to new leads?"], keys: /conver|cta|roi\b|return on|spend|click|lead|inquir|form|source|speed|fast|quick|respond|reply|waiting|new customer|follow.?up|email|open|replied|sequence|touch|nurture|drip|check.?in|covered|outbound/i },
-  { id: "jobs", name: "Operations", role: "Jobs, crew and reports", color: "#ff9a6b", blurb: "Tracks booked jobs, dispatches your crew, and sums up the week.", prompts: ["What jobs are scheduled?", "Who's available right now?", "Give me this week's summary"], keys: /job|booked|schedul|pipeline|revenue|value|worth|work order|completed|crew|team|dispatch|technician|tech\b|available|who.?s on|on a job|assigned|report|summary|week|trend|compare|month|improv|fix next|overview|how did we do|performance/i },
+  { id: "leads", name: "Lead Response", role: "Leads, follow-up and forms", color: "#4ade9a", blurb: "Replies to every new lead in minutes, runs the follow-up emails, and watches your website forms and Google listing.", prompts: ["What's my conversion rate by source?", "Which form converts best?", "What's the ROI on my forms?", "How fast do we reply to new leads?"], keys: /conver|cta|roi\b|return on|spend|click|lead|inquir|form|source|speed|fast|quick|respond|reply|waiting|new customer|follow.?up|email|open|replied|sequence|touch|nurture|drip|check.?in|covered|outbound/i },
+  { id: "jobs", name: "Operations", role: "Estimates, jobs and reports", color: "#ff9a6b", blurb: "Tracks booked estimates and jobs, and sums up the week.", prompts: ["What jobs are scheduled?", "What's my biggest job?", "Give me this week's summary"], keys: /job|booked|schedul|pipeline|revenue|value|worth|work order|completed|crew|team|dispatch|technician|tech\b|available|who.?s on|on a job|assigned|report|summary|week|trend|compare|month|improv|fix next|overview|how did we do|performance/i },
 ];
 
 export const agentById = (id: AgentId) => AGENTS.find((a) => a.id === id)!;
@@ -42,7 +42,7 @@ export interface Reply { agent: AgentId; text: string; card?: Card; suggestions?
 const has = (q: string, re: RegExp) => re.test(q);
 const pct = (a: number, b: number) => (b ? Math.round((a / b) * 1000) / 10 : 0);
 const mins = (s: number) => `${Math.floor(s / 60)}m ${String(s % 60).padStart(2, "0")}s`;
-const when = (t: number) => new Date(t).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/Los_Angeles" });
+const when = (t: number) => new Date(t).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: "America/New_York" });
 const sgn = (n: number) => `${n >= 0 ? "+" : ""}${n}%`;
 
 type AnswerSettings = Pick<Settings, "businessName"> & { crew?: CrewMember[]; adSpend?: number };
@@ -83,7 +83,7 @@ export function answer(ds: Dataset, agent: AgentId, q: string, settings?: Answer
     }
     if (has(q, /busiest|peak|most calls|when do/i)) {
       const hrs = Array(24).fill(0) as number[];
-      s.calls.forEach((c) => { hrs[new Date(new Date(c.at).toLocaleString("en-US", { timeZone: "America/Los_Angeles" })).getHours()]++; });
+      s.calls.forEach((c) => { hrs[new Date(new Date(c.at).toLocaleString("en-US", { timeZone: "America/New_York" })).getHours()]++; });
       const top = hrs.map((n, h) => ({ h, n })).sort((a, b) => b.n - a.n).slice(0, 4);
       const lbl = (h: number) => `${((h + 11) % 12) + 1}${h < 12 ? "am" : "pm"}`;
       return R(`Your busiest hour is ${lbl(top[0].h)}, with ${top[0].n} calls in 30 days.`, { title: "Busiest hours", head: ["Hour", "Calls"], rows: top.map((t) => [`${lbl(t.h)} to ${lbl((t.h + 1) % 24)}`, String(t.n)]) }, ["How many calls came in after hours?"]);

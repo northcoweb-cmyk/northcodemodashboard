@@ -14,6 +14,7 @@ import { JobsTaskList } from "@/components/jobs-tasks";
 import { ImprovementsCard } from "@/components/improvements-card";
 import { TouchCard } from "@/components/touch-card";
 import type { Dataset } from "@/lib/types";
+import { openEstimates } from "@/lib/reactivation";
 
 function Overview({ ds }: { ds: Dataset }) {
   const { settings, update } = useSettings();
@@ -25,10 +26,10 @@ function Overview({ ds }: { ds: Dataset }) {
   const stepCount = (k: string) => real.filter((c) => c.steps.find((x) => x.key === k)?.state === "done").length;
   const flow = [
     { label: "Answered", n: s.answered, note: "Picked up on the first ring" },
-    { label: "Urgency checked", n: stepCount("qualified"), note: "Asked about active damage" },
-    { label: "Details captured", n: stepCount("captured"), note: "Name, phone, address, service" },
-    { label: "Classified", n: stepCount("classified"), note: "Job, estimate, question, spam" },
-    { label: "Owner alerted", n: stepCount("alerted"), note: "Job alert email sent" },
+    { label: "Service identified", n: stepCount("qualified"), note: "PPF, ceramic, correction, wrap, tint, detail" },
+    { label: "Details captured", n: stepCount("captured"), note: "Name, phone, email, vehicle, service" },
+    { label: "Classified", n: stepCount("classified"), note: "Estimate, question, booking, spam" },
+    { label: "Shop alerted", n: stepCount("alerted"), note: "Lead alert email sent" },
   ];
   const issues = issueRows(ds);
   const hour = new Date().getHours();
@@ -40,8 +41,8 @@ function Overview({ ds }: { ds: Dataset }) {
         <Stat icon={Moon} label="After-hours calls" value={s.afterHours} hint={`${s.afterHoursPct}% of all calls`} explain="afterhours" />
         <Stat icon={Users} label="Leads captured" value={s.leadCount} delta={delta(s.leadCount, s.prevLeads)} hint="vs previous 30 days" explain="leads" />
         <Stat icon={Timer} label="Time to first reply" value={s.avgFirstReply} unit="min" hint="average, all sources" explain="reply" />
-        <Stat icon={Hammer} label="Jobs booked" value={s.jobsBooked} delta={delta(s.jobsBooked, s.prevJobs)} hint="vs previous 30 days" explain="jobs" />
-        <Stat icon={DollarSign} label="Booked job value (30 days)" value={money(s.pipelineValue)} hint={`${s.valued} of ${s.jobsBooked} jobs valued by you · avg ${money(s.avgJob)}`} explain="jobs" />
+        <Stat icon={Hammer} label="Booked work" value={s.jobsBooked} delta={delta(s.jobsBooked, s.prevJobs)} hint="vs previous 30 days" explain="jobs" />
+        <Stat icon={DollarSign} label="Booked work value (30 days)" value={money(s.pipelineValue)} hint={`${s.valued} of ${s.jobsBooked} jobs valued by you · avg ${money(s.avgJob)}`} explain="jobs" />
         {m.followup.active && <Stat icon={MailCheck} label="Follow-up reply rate" value={s.replyRate} unit="%" hint={`${s.openRate}% opened`} explain="followup" />}
         <Stat icon={Clock} label="Won back from quiet leads" value={money(s.wonBackValue)} hint={`${s.wonBack} jobs from win-back messages`} explain="wonback" />
       </div>
@@ -76,17 +77,18 @@ function Overview({ ds }: { ds: Dataset }) {
 
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
         <div className="lg:col-span-1"><JobsTaskList ds={ds} title="Booked jobs" count={5} className="h-full" /></div>
-        <Card className="lg:col-span-2" explain="jobs">
-          <CardHead title="Crew right now" sub="Who gets dispatched when a job is booked" />
-          <ul className="grid gap-3 sm:grid-cols-2">
-            {settings.crew.map((c) => (
-              <li key={c.id} className="flex items-center gap-3 rounded-xl border border-border p-3">
-                <span className="flex size-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white" style={{ background: c.color }}>{c.name.split(" ").map((p) => p[0]).join("").slice(0, 2)}</span>
-                <span className="min-w-0 flex-1"><span className="block truncate text-[13px] font-medium">{c.name}</span><span className="block truncate text-xs text-muted-foreground">{c.role}</span></span>
-                <i className={cn("size-2 shrink-0 rounded-full", c.status === "available" ? "bg-good" : c.status === "on_job" ? "bg-warn" : "bg-foreground/25")} title={c.status} />
+        <Card className="lg:col-span-2">
+          <CardHead title="Next follow-ups going out" sub="Already written and scheduled. Each stops the moment the person replies or books." />
+          <ul className="flex flex-col divide-y divide-border/60">
+            {openEstimates(ds).slice(0, 5).map((e) => (
+              <li key={e.lead.id} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
+                <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-foreground/[0.06] text-foreground"><MailCheck className="size-4" strokeWidth={1.5} /></span>
+                <span className="min-w-0 flex-1"><span className="block truncate text-[13px] font-medium">{e.lead.name} · {e.lead.vehicle}</span><span className="block truncate text-xs text-muted-foreground">Step {e.step} of {e.total}: “{e.draft.subject}”</span></span>
+                <span className="tnum shrink-0 text-[11px] text-muted-foreground">{when(e.nextAt)}</span>
               </li>
             ))}
           </ul>
+          <a href="/dashboard/reactivation" className="mt-3 inline-block text-xs font-medium underline underline-offset-4">See all old estimates and past customers</a>
         </Card>
       </div>
 

@@ -11,7 +11,7 @@ const DAY = 86400000;
 function Schedule({ ds }: { ds: Dataset }) {
   const { settings } = useSettings();
   const open = ds.jobs.filter((j) => j.status !== "completed").slice(0, 14);
-  const startOfToday = new Date(new Date(ds.now).toLocaleString("en-US", { timeZone: "America/Los_Angeles" })); startOfToday.setHours(0, 0, 0, 0);
+  const startOfToday = new Date(new Date(ds.now).toLocaleString("en-US", { timeZone: "America/New_York" })); startOfToday.setHours(0, 0, 0, 0);
   const days = Array.from({ length: 5 }, (_, i) => { const d = new Date(startOfToday); d.setDate(d.getDate() + i); return d; });
   const bucket = days.map(() => [] as { hour: number; job: (typeof open)[number] }[]);
   open.forEach((j, i) => { const n = parseInt(j.id.slice(2), 10); bucket[Math.min(4, Math.floor(i / 3))].push({ hour: 8 + (n % 9), job: j }); });

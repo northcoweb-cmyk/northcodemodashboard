@@ -53,8 +53,8 @@ export function outcomes(ds: Dataset, days = 30) {
   const cs = ds.calls.filter((c) => within(ds, days)(c.at));
   const count = (f: (c: (typeof cs)[number]) => boolean) => cs.filter(f).length;
   return [
-    { key: "job_booked", label: "Job booked", n: count((c) => c.outcome === "job_booked") },
-    { key: "quote_requested", label: "Estimate requested", n: count((c) => c.outcome === "quote_requested") },
+    { key: "job_booked", label: "Estimate booked", n: count((c) => c.outcome === "job_booked") },
+    { key: "quote_requested", label: "Quote requested", n: count((c) => c.outcome === "quote_requested") },
     { key: "transferred", label: "Transferred to owner", n: count((c) => c.outcome === "transferred") },
     { key: "info", label: "Question answered", n: count((c) => c.outcome === "info") },
     { key: "issue", label: "Follow-up needed", n: count((c) => c.outcome === "issue") },
@@ -66,7 +66,7 @@ export function outcomes(ds: Dataset, days = 30) {
 export function byHour(ds: Dataset, days = 30) {
   const grid = Array.from({ length: 7 }, () => Array(24).fill(0) as number[]);
   for (const c of ds.calls.filter((c) => within(ds, days)(c.at))) {
-    const l = new Date(new Date(c.at).toLocaleString("en-US", { timeZone: "America/Los_Angeles" }));
+    const l = new Date(new Date(c.at).toLocaleString("en-US", { timeZone: "America/New_York" }));
     grid[(l.getDay() + 6) % 7][l.getHours()]++;
   }
   return grid;
@@ -74,7 +74,7 @@ export function byHour(ds: Dataset, days = 30) {
 
 export function sources(ds: Dataset, days = 30) {
   const ls = ds.leads.filter((l) => within(ds, days)(l.at));
-  return (["call", "form", "email"] as const).map((s) => ({ key: s, label: s === "call" ? "Phone calls" : s === "form" ? "Website forms" : "Email", n: ls.filter((l) => l.source === s).length }));
+  return (["call", "form", "gbp", "email"] as const).map((s) => ({ key: s, label: s === "call" ? "Phone calls" : s === "form" ? "Website forms" : s === "gbp" ? "Google Business Profile" : "Email", n: ls.filter((l) => l.source === s).length }));
 }
 
 export function issueRows(ds: Dataset) {

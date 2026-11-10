@@ -26,7 +26,7 @@ function SimPanel() {
   const [phone, setPhone] = useState("(253) 555-0188");
   const [email, setEmail] = useState("dana@gmail.com");
   const [service, setService] = useState(SERVICES[0]);
-  const [address, setAddress] = useState("412 Harbor Ave, Tacoma, WA");
+  const [address, setAddress] = useState("1840 Diamond Ave, Gaithersburg, MD");
   const [outcome, setOutcome] = useState<SimOutcome>("job_booked");
   const [via, setVia] = useState(`${FORM_PAGES[0][0]} · ${FORM_PAGES[0][1]}`);
   const [msg, setMsg] = useState("");
@@ -122,7 +122,7 @@ export function AdminDialog({ open, onOpenChange }: { open: boolean; onOpenChang
             {settings.crew.map((c) => (
               <div key={c.id} className="flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2 text-[13px]"><span className="min-w-0 truncate">{c.name} <span className="text-muted-foreground">· {c.phone}</span></span><button onClick={() => update({ crew: settings.crew.filter((x) => x.id !== c.id) })} className="shrink-0 text-xs text-muted-foreground hover:text-bad">Remove</button></div>
             ))}
-            <button onClick={() => update({ crew: [...settings.crew, { id: `cr${Date.now()}`, name: "New crew member", role: "Technician", phone: "(253) 555-0100", skills: ["Water damage"], color: "#2a62e8", status: "available" }] })} className="self-start rounded-lg border border-border px-3 py-2 text-xs text-muted-foreground transition hover:text-foreground">Add crew member</button>
+            <button onClick={() => update({ crew: [...settings.crew, { id: `cr${Date.now()}`, name: "New crew member", role: "Technician", phone: "(240) 555-0100", skills: ["Paint protection film"], color: "#2a62e8", status: "available" }] })} className="self-start rounded-lg border border-border px-3 py-2 text-xs text-muted-foreground transition hover:text-foreground">Add crew member</button>
           </section>
           <section className="flex flex-col gap-3">
             <h4 className="text-xs font-medium uppercase tracking-wider text-muted-foreground/70">Agent names</h4>

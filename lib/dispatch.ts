@@ -1,11 +1,9 @@
 import type { CrewMember, Dataset, Job } from "./types";
 
 export const DEFAULT_CREW: CrewMember[] = [
-  { id: "cr1", name: "Tony Reyes", role: "Crew lead", phone: "(253) 555-0171", skills: ["Water damage", "Burst pipe", "Storm damage"], color: "#2a62e8", status: "on_job" },
-  { id: "cr2", name: "Jess Alvarez", role: "Technician", phone: "(253) 555-0172", skills: ["Water damage", "Sewage backup", "Burst pipe"], color: "#12935f", status: "available" },
-  { id: "cr3", name: "Sam Okafor", role: "Technician", phone: "(253) 555-0173", skills: ["Fire & smoke", "Storm damage"], color: "#b9770e", status: "available" },
-  { id: "cr4", name: "Luis Ortega", role: "Mold specialist", phone: "(253) 555-0174", skills: ["Mold", "Water damage"], color: "#8a4fe0", status: "available" },
-  { id: "cr5", name: "Priya Nair", role: "Project manager", phone: "(253) 555-0175", skills: ["Fire & smoke", "Mold", "Sewage backup"], color: "#d6457a", status: "off" },
+  { id: "cr1", name: "Lead installer", role: "PPF and wraps", phone: "(240) 555-0171", skills: ["Paint protection film", "Vinyl wrap"], color: "#2a62e8", status: "on_job" },
+  { id: "cr2", name: "Coating tech", role: "Ceramic and correction", phone: "(240) 555-0172", skills: ["Ceramic coating", "Paint correction", "Detailing"], color: "#12935f", status: "available" },
+  { id: "cr3", name: "Tint installer", role: "Window tint", phone: "(240) 555-0173", skills: ["Window tint"], color: "#b9770e", status: "available" },
 ];
 
 export interface Dispatch {
@@ -18,7 +16,7 @@ export interface Dispatch {
 }
 
 export function dispatchMessage(job: Job, business: string) {
-  return `${business}: new job booked. ${job.service} at ${job.address}. Customer: ${job.customer}, ${job.phone}. Reply Y to accept.`;
+  return `${business}: new estimate booked. ${job.service}. Customer: ${job.customer}, ${job.phone}. Reply Y to confirm.`;
 }
 
 /** Crew for a job: everyone whose skills match, lead first, capped at 2. Falls back to anyone who isn't off. */
