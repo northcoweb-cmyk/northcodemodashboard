@@ -15,7 +15,7 @@ export const DEFAULTS: Settings = {
   plan: "Stage 1 · AI Operations",
   ownerName: "VJ",
   phone: "(240) 424-2554",
-  alertEmail: "you@mypaintdoctor.com",
+  alertEmail: "mypaintdoctor@gmail.com",
   hours: "Mon to Fri 9am to 6pm, Sat 11am to 4pm",
   serviceArea: "Gaithersburg, Rockville, Germantown, Bethesda, Potomac, Frederick, Columbia, Baltimore",
   greeting: "Thanks for calling My Paint Doctor. How can I help with your car?",

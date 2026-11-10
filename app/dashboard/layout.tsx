@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { Activity, ArrowUp, BarChart3, CalendarDays, HardHat, Moon, Sun, FileInput, Hammer, LayoutDashboard, LogOut, MailCheck, RefreshCw, Menu, PhoneCall, PhoneOutgoing, Settings as Cog, Users } from "lucide-react";
+import { Activity, ArrowUp, BarChart3, CalendarDays, HardHat, Moon, Sun, FileInput, Globe, Hammer, LayoutDashboard, LogOut, MailCheck, RefreshCw, Menu, PhoneCall, PhoneOutgoing, Settings as Cog, Users } from "lucide-react";
 import { SidebarNav, type NavGroupData } from "@/components/ui/dashboard-sidebar";
 import { AgentIcon } from "@/components/agent-icon";
 import { agentById } from "@/lib/agents";
@@ -44,6 +44,7 @@ function Shell({ children }: { children: React.ReactNode }) {
       ...(m.followup.sidebar ? [{ id: "/dashboard/follow-ups", title: "Follow-ups", icon: MailCheck, href: "/dashboard/follow-ups" }] : []),
       ...(m.forms.sidebar ? [{ id: "/dashboard/forms", title: "Website forms", icon: FileInput, href: "/dashboard/forms" }] : []),
       { id: "/dashboard/reactivation", title: "Old estimates", icon: RefreshCw, href: "/dashboard/reactivation" },
+      { id: "/site", title: "New website", icon: Globe, onClick: () => window.open("/site", "_blank") },
       ...(m.checkins.sidebar ? [{ id: "/dashboard/check-ins", title: "Check-in calls", icon: PhoneOutgoing, href: "/dashboard/check-ins" }] : []),
     ] },
     { heading: "Work", items: [

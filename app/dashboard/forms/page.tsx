@@ -16,7 +16,7 @@ function Forms({ ds }: { ds: Dataset }) {
   const { settings } = useSettings();
   const [sel, setSel] = useState<Lead | null>(null);
   const { simulate } = useData();
-  const [t, setT] = useState({ name: "Alex Morgan", email: "alex.morgan@example.com", phone: "(240) 555-0200", vehicle: "Porsche Taycan Turbo", service: "Paint protection film", source: "form" as "form" | "gbp" });
+  const [t, setT] = useState({ name: "Alex Morgan", email: "alex.morgan@example.com", phone: "(240) 555-0200", vehicle: "Porsche Taycan Turbo", service: "Paint protection film", source: "form" as "form" | "gbp" | "email" });
   const send = () => { const sim = simulateForm({ name: t.name, email: t.email, phone: t.phone, vehicle: t.vehicle, service: t.service, source: t.source, address: "1840 Diamond Ave, Gaithersburg, MD" }); simulate(sim); setSel(sim.leads[0]); };
   const inp = "w-full rounded-md border border-border bg-transparent px-2.5 py-1.5 text-[13px] outline-none focus:border-foreground/40";
   const s = summary(ds, 30);
@@ -33,6 +33,13 @@ function Forms({ ds }: { ds: Dataset }) {
         <Stat icon={Zap} label="Replied within 5 min" value={f30.length ? Math.round((f30.filter((l) => l.firstReplyMin <= 5).length / f30.length) * 100) : 0} unit="%" explain="reply" />
       </div>
       <Card className="mt-4">
+        <CardHead title="Your new website vs the current one" sub="What changes, and why it should convert better. We measure it here once it's live." />
+        <Table head={["", "Current website", "New website"]}>
+          {[["Where the quote form is", "Button goes to a Contact page; full form is further down the homepage", "On the first screen of the homepage"], ["What it asks", "8 fields on one form", "Car and service first, then name and phone"], ["Starting from a service", "Blank form", "Every service button pre-selects the service"], ["Your reviews", "Testimonials lower on the page", "Next to the headline, and real reviews again right before a second quote button"], ["Questions like PPF vs ceramic", "Visitor leaves to search", "AI assist answers on the page and ends on a quote"], ["After they submit", "\"Our team will be in touch shortly\"", "Lead created, you're alerted, a personal email goes out in minutes"], ["If they don't book", "Up to you to remember", "Up to 12 follow-up emails, stopping when they reply or book"]].map(([a, b, c]) => <tr key={a}><td className="font-medium">{a}</td><td className="text-muted-foreground">{b}</td><td>{c}</td></tr>)}
+        </Table>
+        <a href="/site" target="_blank" rel="noreferrer" className="mt-3 inline-block text-xs font-medium underline underline-offset-4">Open the new website concept →</a>
+      </Card>
+      <Card className="mt-4">
         <CardHead title="Try it live" sub="Send a test quote request and watch what happens next" />
         <div className="grid gap-3 sm:grid-cols-3">
           <input className={inp} value={t.name} onChange={(e) => setT({ ...t, name: e.target.value })} placeholder="Name" />
@@ -40,7 +47,7 @@ function Forms({ ds }: { ds: Dataset }) {
           <input className={inp} value={t.phone} onChange={(e) => setT({ ...t, phone: e.target.value })} placeholder="Phone" />
           <input className={inp} value={t.vehicle} onChange={(e) => setT({ ...t, vehicle: e.target.value })} placeholder="Car" />
           <select className={inp} value={t.service} onChange={(e) => setT({ ...t, service: e.target.value })}>{SERVICES.map((x) => <option key={x}>{x}</option>)}</select>
-          <select className={inp} value={t.source} onChange={(e) => setT({ ...t, source: e.target.value as "form" | "gbp" })}><option value="form">Website quote form</option><option value="gbp">Google Business Profile message</option></select>
+          <select className={inp} value={t.source} onChange={(e) => setT({ ...t, source: e.target.value as "form" | "gbp" | "email" })}><option value="form">Website quote form</option><option value="gbp">Google Business Profile message</option><option value="email">Email to mypaintdoctor@gmail.com</option></select>
         </div>
         <button onClick={send} className="mt-3 rounded-md bg-foreground px-3.5 py-2 text-[13px] font-medium text-background">Send test quote request</button>
       </Card>
